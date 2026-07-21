@@ -1,16 +1,25 @@
 # Regression tests
 
 `regression.js` drives `index.html` headlessly through Playwright and exercises the parts of
-the sim that are easy to break silently: the base extractor→smelter→fabricator→terminal chain,
-the Splitter, the Merger (build rules + the supply-weighted pull equilibrium), the Storage Room,
-the Extractor tier picker (T1/T2/T3 rate math), the per-belt Belt tier caps (T1/T2), and
-save/load with offline-earnings catch-up (via a real `page.reload()`, not just an in-memory
-function call).
+the sim and UI that are easy to break silently: the base extractor→smelter→fabricator→terminal
+chain, the Splitter, the Merger (build rules + the supply-weighted pull equilibrium), the Storage
+Room, the Extractor tier picker (T1/T2/T3 rate math), the per-belt Belt tier caps (T1/T2),
+Scanning (fog-of-war deposit discovery), manual belt drawing (driven through the real
+pointer/canvas UI, not just the data API), belt splicing (Splitter/Merger placed directly onto
+an existing belt), tech-tier gating end-to-end (unlocking tools and extractor tiers by delivering
+to the Assembly Terminal), and save/load with offline-earnings catch-up (via a real
+`page.reload()`, not just an in-memory function call).
 
-It talks to the game entirely through `window.__game`, the test API exposed at the bottom of
+It talks to the game mostly through `window.__game`, the test API exposed at the bottom of
 `index.html`'s script — the same hook used to build and verify every feature in this file so far.
-If a future change removes or renames something on `window.__game`, this suite is what should
-catch it.
+The manual-belt-drawing and extractor-tier-picker sections additionally drive the **real** canvas
+via `page.mouse.click()`, using a small `cellPx(x,y)` helper on the test API (plus the canvas
+element's own `getBoundingClientRect()`) to translate grid coordinates into real page pixel
+coordinates — this exercises the actual click-by-click UI a player uses, not just the underlying
+data model.
+
+If a future change removes or renames something on `window.__game`, or changes the pointer-event
+handling in `index.html`, this suite is what should catch it.
 
 ## Running it
 
@@ -40,8 +49,15 @@ script that lived only in Claude's temporary cloud workspace and was never commi
 each new session either had to trust old chat history or rebuild verification from scratch. This
 file is the first attempt to break that pattern: a single, committed, cumulative regression suite
 that grows as features are added, so "does this still work" has one command to answer it instead
-of a session digging through prior conversations.
+of a session digging through prior conversations. It has already paid off once: extending it for
+the tech-tier gating feature surfaced a real bug in the offline-catch-up test itself (a
+too-early "before" measurement was masking genuine progress), which wouldn't have been obvious
+without a single suite to run end to end and compare against.
 
 When you add a new building type, sim rule, or UI flow to `index.html`, add a section here for it
 before considering the feature done — same spirit as the Playwright verification that's already
-been happening ad hoc all along, just kept around this time.
+been happening ad hoc all along, just kept around this time. If the new UI flow involves real
+pointer interaction (not just calling something on `window.__game` directly), prefer driving it
+through actual `page.mouse.click()` calls the way the manual-belt-drawing section does, rather
+than only testing the underlying data function — that's the only way to catch bugs in the pointer
+event handling itself.
