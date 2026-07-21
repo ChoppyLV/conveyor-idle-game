@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bolted Sheets Chain — mechanic prototype</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background:#12151a; color:#e6e8eb; }
+  header { padding:10px 16px; background:#1a1e26; border-bottom:1px solid #2a2f3a; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  header h1 { font-size:15px; margin:0; font-weight:600; color:#9fd3ff; }
+  .controls { display:flex; gap:14px; align-items:center; flex-wrap:wrap; font-size:13px; }
+  .controls label { display:flex; align-items:center; gap:5px; cursor:pointer; }
+  select, button { background:#232833; color:#e6e8eb; border:1px solid #38404f; border-radius:5px; padding:4px 8px; font-size:13px; }
+  button { cursor:pointer; }
+  button:hover { background:#2c3341; }
+  #genBtn { background:#3a2f1a; border-color:#6b5222; }
+  #genBtn:hover { background:#4a3d24; }
+  main { display:flex; gap:0; }
+  #canvasWrap { flex:1 1 auto; padding:14px; }
+  canvas { background:#0c0e12; border:1px solid #262b35; border-radius:6px; display:block; }
+  #sidebar { width:340px; flex:0 0 340px; padding:14px; border-left:1px solid #2a2f3a; background:#161a21; }
+  #sidebar h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:#8891a0; margin:0 0 8px; }
+  table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:16px; }
+  th, td { text-align:left; padding:3px 4px; border-bottom:1px solid #232833; }
+  th { color:#8891a0; font-weight:500; }
+  .util-bar { height:6px; border-radius:3px; background:#232833; overflow:hidden; margin-top:2px; }
+  .util-fill { height:100%; background:linear-gradient(90deg,#3a8fd6,#5fd6a8); }
+  #powerBox { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  #battBar { flex:1; height:14px; border-radius:7px; background:#232833; overflow:hidden; border:1px solid #38404f; }
+  #battFill { height:100%; background:linear-gradient(90deg,#e0b23a,#f2d675); transition:width .15s; }
+  #sparkline { width:100%; height:36px; }
+  #brownout { color:#ff6b6b; font-weight:600; font-size:12px; }
+  .stat { font-size:22px; font-weight:700; color:#5fd6a8; }
+  .statLabel { font-size:11px; color:#8891a0; }
+  .note { font-size:11px; color:#6d7686; margin-top:10px; line-height:1.5; }
+  .flag { display:inline-block; padding:1px 6px; border-radius:3px; font-size:10px; margin-left:6px; }
+  .flag.on { background:#1e4030; color:#7fe3ac; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Bolted Sheets Chain</h1>
+  <div class="controls">
+    <label>Preset
+      <select id="presetSel">
+        <option value="funky">Funky (self-balances ~566.7/min)</option>
+        <option value="balanced">Balanced (all 100%, 600/min)</option>
+      </select>
+    </label>
+    <label>Extractor tier
+      <select id="tierSel">
+        <option value="1">T1 (×1)</option>
+        <option value="2">T2 (×2)</option>
+        <option value="3">T3 (×4)</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="storeSheet"> Storage Room — sheet line</label>
+    <label><input type="checkbox" id="storeBolt"> Storage Room — bolt line</label>
+    <button id="genBtn">⚡ Generate +60kW</button>
+  </div>
+</header>
+<main>
+  <div id="canvasWrap">
+    <canvas id="cv" width="760" height="560"></canvas>
+    <div class="note">
+      Self-contained mechanic proof for the "funky rates" chain Pavel specced 2026-07-09: Extractor → Smelter → bar splits (load-balancing splitter, proportional to downstream free room) → Sheet Press / (Shaft Maker → Bolt Maker) → Combiner (bolted sheet). Rate-based backpressure sim, matches the model in <code>mechanics-spec.md</code>. Recipes shown here are the hand-authored mechanic proof, not the final reskinned-tree recipes (those live in <code>line_balance_game_data.json</code>).
+    </div>
+  </div>
+  <div id="sidebar">
+    <h2>Analyze — live rates</h2>
+    <table id="analyzeTable">
+      <thead><tr><th>Node</th><th>out/min</th><th>util</th><th>buf</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h2>Output <span id="rollingFlag" class="flag"></span></h2>
+    <div class="stat" id="shippedRate">0</div>
+    <div class="statLabel">bolted sheets / min (rolling avg)</div>
+
+    <h2 style="margin-top:16px;">Power</h2>
+    <div id="powerBox">
+      <div id="battBar"><div id="battFill" style="width:0%"></div></div>
+      <div id="battLabel" style="font-size:11px;color:#8891a0;">0 / 600 kW</div>
+    </div>
+    <canvas id="sparkline" width="312" height="36"></canvas>
+    <div id="brownout"></div>
+
+    <div class="note" id="storeNote"></div>
+  </div>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- Config (matches project convention: window.__config for test overrides) ----
+  window.__config = Object.assign({
+    storageCap: 20,
+    bigStorageCap: 5000,
+    batteryCap: 600,
+    autoPower: false,
+    dtMs: 100
+  }, window.__config || {});
+
+  const PRESETS = {
+    funky: {
+      label: "Funky",
+      extractorBase: 3000,
+      smelter:    { inRate: 3000, outRate: 3000 },
+      sheetPress: { inRate: 3000, outRate: 1500 },
+      shaftMaker: { inRate: 3000, outRate: 2000 },
+      boltMaker:  { inRate: 1000, outRate: 3000 },
+      combiner:   { boltRate: 4000, sheetRate: 1250, outRate: 850 }
+    },
+    balanced: {
+      label: "Balanced",
+      extractorBase: 3000,
+      smelter:    { inRate: 3000, outRate: 3000 },
+      sheetPress: { inRate: 1800, outRate: 900 },
+      shaftMaker: { inRate: 1200, outRate: 800 },
+      boltMaker:  { inRate: 800,  outRate: 2400 },
+      combiner:   { boltRate: 2400, sheetRate: 900, outRate: 600 }
+    }
+  };
+  const EXTRACTOR_MULT = { 1: 1, 2: 2, 3: 4 };
+  const BELT_CAP = 3000; // units/min, matches Belt T1 cap used across the project
+  const POWER_DRAW = { extractor: 100, smelter: 140, sheetPress: 140, shaftMaker: 140, boltMaker: 140, combiner: 180 };
+
+  // ---- Sim state ----
+  let state = null;
+
+  function freshState() {
+    return {
+      extractorOut: 0,
+      smelterIn: 0, smelterOut: 0,
+      sheetPressIn: 0, sheetPressOut: 0,
+      shaftMakerIn: 0, shaftMakerOut: 0,
+      boltMakerIn: 0, boltMakerOut: 0,
+      sheetStore: 0, boltStore: 0,
+      combinerSheetIn: 0, combinerBoltIn: 0,
+      shipped: 0,
+      util: { extractor:0, smelter:0, sheetPress:0, shaftMaker:0, boltMaker:0, combiner:0 },
+      rateWindow: [],
+      battery: 0,
+      powerHistory: [],
+      brownedOut: false
+    };
+  }
+
+  function currentPreset() {
+    return PRESETS[document.getElementById('presetSel').value];
+  }
+  function currentExtractorMult() {
+    return EXTRACTOR_MULT[document.getElementById('tierSel').value];
+  }
+  function storeOnSheet() { return document.getElementById('storeSheet').checked; }
+  function storeOnBolt() { return document.getElementById('storeBolt').checked; }
+
+  // ---- One backpressure tick. dtMs in ms. Pure function of state+config, no rendering. ----
+  function tick(s, dtMs) {
+    const cfg = window.__config;
+    const P = currentPreset();
+    const dtMin = dtMs / 60000;
+    const cap = cfg.storageCap;
+    const sheetStoreCap = storeOnSheet() ? cfg.bigStorageCap : cap;
+    const boltStoreCap = storeOnBolt() ? cfg.bigStorageCap : cap;
+    const extractorRate = P.extractorBase * currentExtractorMult();
+
+    // power gating
+    let powerOk = cfg.autoPower ? true : true; // gating applied via draw below; production isn't blocked, only battery is drained/tracked
+    if (!cfg.autoPower) {
+      let demand = 0;
+      // approximate demand: machines that did useful work last tick draw power (rough real-time meter, not gating this build)
+    }
+
+    // 1. Extractor -> extractorOut
+    let extractorRoom = Math.max(0, cap - s.extractorOut);
+    let extractorProduced = Math.min(extractorRate * dtMin, extractorRoom);
+    s.extractorOut += extractorProduced;
+    s.util.extractor = extractorProduced / ((extractorRate * dtMin) || 1);
+
+    // belt -> smelterIn
+    let flow1 = Math.min(BELT_CAP * dtMin, s.extractorOut, cap - s.smelterIn);
+    s.extractorOut -= flow1; s.smelterIn += flow1;
+
+    // 2. Smelter (1:1 in both presets)
+    let smelterCapIn = P.smelter.inRate * dtMin;
+    let smelterRoom = Math.max(0, cap - s.smelterOut) * (P.smelter.inRate / P.smelter.outRate);
+    let smelterConsumed = Math.min(smelterCapIn, s.smelterIn, smelterRoom);
+    let smelterProduced = smelterConsumed * (P.smelter.outRate / P.smelter.inRate);
+    s.smelterIn -= smelterConsumed; s.smelterOut += smelterProduced;
+    s.util.smelter = smelterConsumed / (smelterCapIn || 1);
+
+    // belt -> splitter input Q
+    let Q = Math.min(BELT_CAP * dtMin, s.smelterOut);
+    s.smelterOut -= Q;
+
+    // 3. Splitter: proportional to free room downstream (load-balancing splitter, mechanics-spec.md 1.5)
+    let roomA = Math.max(0, cap - s.sheetPressIn);
+    let roomB = Math.max(0, cap - s.shaftMakerIn);
+    let totalRoom = roomA + roomB;
+    let qA = 0, qB = 0;
+    if (totalRoom > 1e-9) {
+      qA = Math.min(Q * (roomA / totalRoom), roomA);
+      qB = Math.min(Q * (roomB / totalRoom), roomB);
+      let leftover = Q - qA - qB;
+      if (leftover > 1e-9) {
+        let addA = Math.min(leftover, roomA - qA); qA += addA; leftover -= addA;
+        let addB = Math.min(leftover, roomB - qB); qB += addB; leftover -= addB;
+      }
+    }
+    s.sheetPressIn += qA; s.shaftMakerIn += qB;
+
+    // 4. Sheet Press
+    let spCapIn = P.sheetPress.inRate * dtMin;
+    let spRoom = Math.max(0, cap - s.sheetPressOut) * (P.sheetPress.inRate / P.sheetPress.outRate);
+    let spConsumed = Math.min(spCapIn, s.sheetPressIn, spRoom);
+    let spProduced = spConsumed * (P.sheetPress.outRate / P.sheetPress.inRate);
+    s.sheetPressIn -= spConsumed; s.sheetPressOut += spProduced;
+    s.util.sheetPress = spConsumed / (spCapIn || 1);
+
+    let flowSheet = Math.min(BELT_CAP * dtMin, s.sheetPressOut, sheetStoreCap - s.sheetStore);
+    s.sheetPressOut -= flowSheet; s.sheetStore += flowSheet;
+    let flowSheet2 = Math.min(BELT_CAP * dtMin, s.sheetStore, cap - s.combinerSheetIn);
+    s.sheetStore -= flowSheet2; s.combinerSheetIn += flowSheet2;
+
+    // 5. Shaft Maker
+    let smkCapIn = P.shaftMaker.inRate * dtMin;
+    let smkRoom = Math.max(0, cap - s.shaftMakerOut) * (P.shaftMaker.inRate / P.shaftMaker.outRate);
+    let smkConsumed = Math.min(smkCapIn, s.shaftMakerIn, smkRoom);
+    let smkProduced = smkConsumed * (P.shaftMaker.outRate / P.shaftMaker.inRate);
+    s.shaftMakerIn -= smkConsumed; s.shaftMakerOut += smkProduced;
+    s.util.shaftMaker = smkConsumed / (smkCapIn || 1);
+
+    let flow2 = Math.min(BELT_CAP * dtMin, s.shaftMakerOut, cap - s.boltMakerIn);
+    s.shaftMakerOut -= flow2; s.boltMakerIn += flow2;
+
+    // 6. Bolt Maker
+    let bmCapIn = P.boltMaker.inRate * dtMin;
+    let bmRoom = Math.max(0, cap - s.boltMakerOut) * (P.boltMaker.inRate / P.boltMaker.outRate);
+    let bmConsumed = Math.min(bmCapIn, s.boltMakerIn, bmRoom);
+    let bmProduced = bmConsumed * (P.boltMaker.outRate / P.boltMaker.inRate);
+    s.boltMakerIn -= bmConsumed; s.boltMakerOut += bmProduced;
+    s.util.boltMaker = bmConsumed / (bmCapIn || 1);
+
+    let flowBolt = Math.min(BELT_CAP * dtMin, s.boltMakerOut, boltStoreCap - s.boltStore);
+    s.boltMakerOut -= flowBolt; s.boltStore += flowBolt;
+    let flowBolt2 = Math.min(BELT_CAP * dtMin, s.boltStore, cap - s.combinerBoltIn);
+    s.boltStore -= flowBolt2; s.combinerBoltIn += flowBolt2;
+
+    // 7. Combiner
+    let outCapByRecipe = P.combiner.outRate * dtMin;
+    let outCapByBolt = s.combinerBoltIn / (P.combiner.boltRate / P.combiner.outRate);
+    let outCapBySheet = s.combinerSheetIn / (P.combiner.sheetRate / P.combiner.outRate);
+    let out = Math.max(0, Math.min(outCapByRecipe, outCapByBolt, outCapBySheet));
+    s.combinerBoltIn -= out * (P.combiner.boltRate / P.combiner.outRate);
+    s.combinerSheetIn -= out * (P.combiner.sheetRate / P.combiner.outRate);
+    s.shipped += out;
+    s.util.combiner = out / (outCapByRecipe || 1);
+
+    s.rateWindow.push(out / dtMin);
+    if (s.rateWindow.length > 200) s.rateWindow.shift();
+
+    // ---- Power layer ----
+    let demand = 0;
+    if (s.util.extractor > 0.01) demand += POWER_DRAW.extractor * s.util.extractor;
+    if (s.util.smelter > 0.01) demand += POWER_DRAW.smelter * s.util.smelter;
+    if (s.util.sheetPress > 0.01) demand += POWER_DRAW.sheetPress * s.util.sheetPress;
+    if (s.util.shaftMaker > 0.01) demand += POWER_DRAW.shaftMaker * s.util.shaftMaker;
+    if (s.util.boltMaker > 0.01) demand += POWER_DRAW.boltMaker * s.util.boltMaker;
+    if (s.util.combiner > 0.01) demand += POWER_DRAW.combiner * s.util.combiner;
+    demand *= (0.9 + 0.2 * Math.random()); // fluctuation, cosmetic
+
+    if (cfg.autoPower) {
+      s.battery = cfg.batteryCap;
+      s.brownedOut = false;
+    } else {
+      let drawn = Math.min(s.battery, demand * dtMin);
+      s.battery -= drawn;
+      s.brownedOut = s.battery <= 0.01 && demand > 0;
+    }
+    s.powerHistory.push(demand);
+    if (s.powerHistory.length > 60) s.powerHistory.shift();
+
+    return out / dtMin;
+  }
+
+  function avgRate(s) {
+    if (!s.rateWindow.length) return 0;
+    return s.rateWindow.reduce((a,b)=>a+b,0) / s.rateWindow.length;
+  }
+
+  // ---- Rendering ----
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const NODES = [
+    { key:'extractor', label:'Extractor', x:40,  y:260, buf:s=>s.extractorOut },
+    { key:'smelter',   label:'Smelting Furnace', x:180, y:260, buf:s=>s.smelterOut },
+    { key:'sheetPress',label:'Sheet Press', x:400, y:120, buf:s=>s.sheetPressOut },
+    { key:'shaftMaker',label:'Shaft Maker', x:400, y:400, buf:s=>s.shaftMakerOut },
+    { key:'boltMaker', label:'Bolt Maker',  x:560, y:400, buf:s=>s.boltMakerOut },
+    { key:'combiner',  label:'Combiner',    x:680, y:260, buf:s=>s.shipped }
+  ];
+
+  function drawNode(n, s) {
+    const util = s.util[n.key] || 0;
+    ctx.fillStyle = '#1c212b';
+    ctx.strokeStyle = '#38404f';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(n.x, n.y, 90, 56, 6) : ctx.rect(n.x, n.y, 90, 56);
+    ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = '#e6e8eb';
+    ctx.font = '11px sans-serif';
+    ctx.fillText(n.label, n.x+6, n.y+16);
+
+    // util bar
+    ctx.fillStyle = '#232833';
+    ctx.fillRect(n.x+6, n.y+26, 78, 8);
+    ctx.fillStyle = util > 0.95 ? '#5fd6a8' : util > 0.5 ? '#3a8fd6' : '#e0b23a';
+    ctx.fillRect(n.x+6, n.y+26, 78*Math.min(1,util), 8);
+
+    ctx.fillStyle = '#8891a0';
+    ctx.font = '10px sans-serif';
+    ctx.fillText((util*100).toFixed(0)+'% util', n.x+6, n.y+46);
+  }
+
+  function drawEdge(x1,y1,x2,y2, active) {
+    ctx.strokeStyle = active ? '#3a8fd6' : '#2a2f3a';
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.beginPath();
+    ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+    ctx.stroke();
+  }
+
+  function render() {
+    ctx.clearRect(0,0,cv.width,cv.height);
+    // edges
+    drawEdge(130,288,180,288,true);
+    drawEdge(270,272,400,148,state.util.sheetPress>0.01);
+    drawEdge(270,296,400,428,state.util.shaftMaker>0.01);
+    drawEdge(490,148,680,270,state.util.combiner>0.01); // sheet -> combiner
+    drawEdge(490,428,560,428,state.util.boltMaker>0.01);
+    drawEdge(650,428,680,290,state.util.combiner>0.01); // bolt -> combiner
+    if (storeOnSheet()) { ctx.fillStyle='#8891a0'; ctx.font='10px sans-serif'; ctx.fillText('▤ storage', 500,138); }
+    if (storeOnBolt())  { ctx.fillStyle='#8891a0'; ctx.font='10px sans-serif'; ctx.fillText('▤ storage', 610,418); }
+
+    NODES.forEach(n => drawNode(n, state));
+
+    ctx.fillStyle = '#5fd6a8';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('Bolted Sheets: ' + avgRate(state).toFixed(1) + '/min', 40, 40);
+  }
+
+  function renderSidebar() {
+    const tbody = document.querySelector('#analyzeTable tbody');
+    tbody.innerHTML = '';
+    const P = currentPreset();
+    const rows = [
+      ['Extractor', currentPreset().extractorBase*currentExtractorMult()*state.util.extractor, state.util.extractor, state.extractorOut],
+      ['Smelter', P.smelter.outRate*state.util.smelter, state.util.smelter, state.smelterOut],
+      ['Sheet Press', P.sheetPress.outRate*state.util.sheetPress, state.util.sheetPress, state.sheetPressOut],
+      ['Shaft Maker', P.shaftMaker.outRate*state.util.shaftMaker, state.util.shaftMaker, state.shaftMakerOut],
+      ['Bolt Maker', P.boltMaker.outRate*state.util.boltMaker, state.util.boltMaker, state.boltMakerOut],
+      ['Combiner', P.combiner.outRate*state.util.combiner, state.util.combiner, avgRate(state)]
+    ];
+    for (const [name, rate, util, buf] of rows) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${name}</td><td>${rate.toFixed(0)}</td>
+        <td><div>${(util*100).toFixed(0)}%</div><div class="util-bar"><div class="util-fill" style="width:${Math.min(100,util*100)}%"></div></div></td>
+        <td>${buf.toFixed(1)}</td>`;
+      tbody.appendChild(tr);
+    }
+    document.getElementById('shippedRate').textContent = avgRate(state).toFixed(1);
+
+    const cfg = window.__config;
+    document.getElementById('battFill').style.width = (100*state.battery/cfg.batteryCap).toFixed(1)+'%';
+    document.getElementById('battLabel').textContent = state.battery.toFixed(0)+' / '+cfg.batteryCap+' kW';
+    document.getElementById('brownout').textContent = state.brownedOut ? '⚠ BROWNOUT — click Generate' : '';
+
+    const sc = document.getElementById('sparkline');
+    const sctx = sc.getContext('2d');
+    sctx.clearRect(0,0,sc.width,sc.height);
+    const hist = state.powerHistory;
+    const max = Math.max(1, ...hist);
+    sctx.strokeStyle = '#e0b23a';
+    sctx.beginPath();
+    hist.forEach((v,i) => {
+      const x = (i/(hist.length-1||1))*sc.width;
+      const y = sc.height - (v/max)*sc.height;
+      i===0 ? sctx.moveTo(x,y) : sctx.lineTo(x,y);
+    });
+    sctx.stroke();
+
+    document.getElementById('storeNote').textContent =
+      (storeOnSheet()||storeOnBolt())
+        ? 'Storage Room absorbs transient/bursty surplus so the machine feeding it runs steady instead of stall-starting. Parking a PERMANENTLY over-producing branch there just accumulates dead inventory and can de-tune the splitter’s self-balancing signal — see mechanics-spec.md.'
+        : '';
+  }
+
+  // ---- Loop ----
+  function resetSim() {
+    state = freshState();
+  }
+  resetSim();
+
+  let lastFrame = performance.now();
+  function loop(now) {
+    const cfg = window.__config;
+    const elapsed = now - lastFrame;
+    lastFrame = now;
+    // step in fixed dt chunks to keep the sim deterministic regardless of frame rate
+    let budget = Math.min(elapsed, 500);
+    while (budget > 0) {
+      tick(state, cfg.dtMs);
+      budget -= cfg.dtMs;
+    }
+    render();
+    renderSidebar();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  document.getElementById('presetSel').addEventListener('change', resetSim);
+  document.getElementById('tierSel').addEventListener('change', resetSim);
+  document.getElementById('genBtn').addEventListener('click', () => {
+    state.battery = Math.min(window.__config.batteryCap, state.battery + 60);
+  });
+
+  // ---- Test API (matches project convention: window.__game) ----
+  window.__game = {
+    reset: resetSim,
+    stepTicks(n) {
+      n = n || 1;
+      for (let i=0;i<n;i++) tick(state, window.__config.dtMs);
+      render(); renderSidebar();
+    },
+    getState() { return state; },
+    getAvgRate() { return avgRate(state); },
+    getUtil() { return Object.assign({}, state.util); },
+    setPreset(name) { document.getElementById('presetSel').value = name; resetSim(); },
+    setExtractorTier(t) { document.getElementById('tierSel').value = String(t); resetSim(); },
+    setStorage(sheet, bolt) {
+      document.getElementById('storeSheet').checked = !!sheet;
+      document.getElementById('storeBolt').checked = !!bolt;
+    },
+    generate(kw) { state.battery = Math.min(window.__config.batteryCap, state.battery + (kw||60)); }
+  };
+})();
+</script>
+</body>
+</html>

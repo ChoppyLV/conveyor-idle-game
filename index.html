@@ -54,6 +54,7 @@
   <header>
     <h1>Line Balance</h1><span class="tier" id="tierLbl">Tier 1 · Flow</span>
     <span class="power" id="powerLbl">⚡ 0</span>
+    <button id="newGameBtn" title="Start a new game (clears save)" style="margin-left:6px;background:none;border:1px solid var(--panel-border);color:var(--dim);border-radius:6px;font-size:10px;padding:3px 7px;cursor:pointer;">New</button>
   </header>
   <div id="stage-wrap">
     <canvas id="c"></canvas>
@@ -69,14 +70,16 @@
 // ---------------------------------------------------------------- CONFIG
 const CFG = Object.assign({
   storageCap:200,       // buffer units per machine per good (scaled world)
+  bigStorageCap:5000,   // Storage Room buffer cap — deliberately much larger than storageCap
   beltCap:{t1:3000,t2:6000},
   richness:[1000,3000,6000],
   extractorMult:[1,2,4],
   rateScale:100,        // reskinned data keeps Satisfactory RATIOS; ×100 → your 3000/min belt world
   batteryCap:600, genPerClick:60, autoPower:false,
   dt:1/20,              // sim seconds per fixed tick
+  offlineCapSec:8*3600, // cap offline-earnings catch-up at 8h
 }, window.__config||{});
-const CAP=CFG.storageCap, BELT_T1=CFG.beltCap.t1;
+const CAP=CFG.storageCap, BELT_T1=CFG.beltCap.t1, BIGCAP=CFG.bigStorageCap;
 
 // ---------------------------------------------------------------- DATA (Act-1 subset; ratios from line_balance_game_data.json)
 const ITEMS={
@@ -106,6 +109,8 @@ const BUILD={
   smelter:{label:"Smelt. Furnace",sub:"1→1 ingot",color:"#e0864a"},
   fabricator:{label:"Fabricator",sub:"1 part",color:"#4fd1c5"},
   splitter:{label:"Splitter",sub:"1→3",color:"#8f7fe0"},
+  merger:{label:"Merger",sub:"3→1",color:"#4fb3e0"},
+  storageroom:{label:"Storage Room",sub:"buffer",color:"#7a8a99"},
   terminal:{label:"Assembly Terminal",sub:"deliver",color:"#4fd17a"},
   generator:{label:"Generator",sub:"tap: +"+CFG.genPerClick+"kW",color:"#c8b04a"},
 };
@@ -125,28 +130,28 @@ function seedDeposits(){
   for(const[x,y,g,r]of seed){ const d={x,y,good:g,rich:r}; deposits.push(d); cell[y][x]={t:"dep",d}; }
 }
 // ---------------------------------------------------------------- NODES
-function makeNode(type,x,y,recipeId){
+function makeNode(type,x,y,recipeId,tier){
   const id=nextId++, b={id,type,x,y,recipeId:recipeId||null,
     inBuf:{},outBuf:{},util:0,working:false,stalled:false,
     inBelt:{},outBelt:{}}; // per-good belt refs (strict ports)
-  if(type==="extractor"){ const d=cell[y][x].d; b.good=d.good;
-    b.rate=CFG.richness[d.rich-1]*CFG.extractorMult[0]; b.outBuf[d.good]=0; }
+  if(type==="extractor"){ const d=cell[y][x].d; b.good=d.good; b.tier=tier||1;
+    b.rate=CFG.richness[d.rich-1]*CFG.extractorMult[b.tier-1]; b.outBuf[d.good]=0; }
   if(type==="smelter"||type==="fabricator"){ const r=RECIPES[recipeId];
     r.in.forEach(([g])=>b.inBuf[g]=0); r.out.forEach(([g])=>b.outBuf[g]=0); }
-  if(type==="splitter"){ b.good=null; b.buf=0; }
+  if(type==="splitter"||type==="merger"||type==="storageroom"){ b.good=null; b.buf=0; }
   if(type==="terminal"){ b.inBuf[targetGood]=0; }
   nodes[id]=b; cell[y][x]={t:"bld",id}; return b;
 }
 // ports: how many belts a node accepts
-function inGoods(b){ if(b.type==="extractor")return[]; if(b.type==="splitter")return["*"]; if(b.type==="terminal")return[targetGood];
+function inGoods(b){ if(b.type==="extractor")return[]; if(b.type==="splitter")return["*"]; if(b.type==="merger")return["*","*","*"]; if(b.type==="storageroom")return["*"]; if(b.type==="terminal")return[targetGood];
   return RECIPES[b.recipeId].in.map(x=>x[0]); }
 function outGoods(b){ if(b.type==="terminal"||b.type==="generator")return[]; if(b.type==="extractor")return[b.good];
-  if(b.type==="splitter")return["*","*","*"]; return RECIPES[b.recipeId].out.map(x=>x[0]); }
+  if(b.type==="splitter")return["*","*","*"]; if(b.type==="merger")return[b.good]; if(b.type==="storageroom")return[b.good]; return RECIPES[b.recipeId].out.map(x=>x[0]); }
 function outBeltCount(b){ return belts.filter(be=>be.src===b.id).length; }
 function inBeltCount(b){ return belts.filter(be=>be.dst===b.id).length; }
 
 // ---------------------------------------------------------------- SIM
-function roomFor(b,g){ if(b.type==="terminal")return 1e9; return CAP-(b.inBuf[g]||0); }
+function roomFor(b,g){ if(b.type==="terminal")return 1e9; if(b.type==="splitter"||b.type==="merger")return CAP-(b.buf||0); if(b.type==="storageroom")return BIGCAP-(b.buf||0); return CAP-(b.inBuf[g]||0); }
 function sim(dt){
   // 1. extractors + machines
   let demand=0;
@@ -173,19 +178,36 @@ function sim(dt){
   // 2. belts transfer (rate-based, backpressure). group splitter sources for room-weighting
   const splitterOut={};
   for(const be of belts){ if(nodes[be.src].type==="splitter"){ (splitterOut[be.src]=splitterOut[be.src]||[]).push(be); } }
+  const mergerIn={};
+  for(const be of belts){ if(nodes[be.dst].type==="merger"){ (mergerIn[be.dst]=mergerIn[be.dst]||[]).push(be); } }
   for(const be of belts){
     const s=nodes[be.src], d=nodes[be.dst];
     if(s.type==="splitter")continue; // handled below
-    const g=be.good; const avail=(s.outBuf[g]||0); const room=roomFor(d,g);
-    const move=Math.min(BELT_T1*dt/60, avail, room);
-    if(move>0){ s.outBuf[g]-=move; addIn(d,g,move); flow(be,move,dt); } else flow(be,0,dt);
+    if(d.type==="merger")continue; // handled below (supply-weighted pull)
+    const g=be.good; const avail=(s.type==="merger"||s.type==="storageroom")?(s.buf||0):(s.outBuf[g]||0); const room=roomFor(d,g);
+    const move=Math.min(be.cap*dt/60, avail, room);
+    if(move>0){ if(s.type==="merger"||s.type==="storageroom")s.buf-=move; else s.outBuf[g]-=move; addIn(d,g,move); flow(be,move,dt); } else flow(be,0,dt);
+  }
+  // mergers: pull from up to 3 inputs proportional to each input's available supply (mechanics-spec.md 1.5 — symmetric dual of the splitter)
+  for(const mid in mergerIn){ const m=nodes[mid]; const ins=mergerIn[mid];
+    const g=m.good;
+    if(!g){ for(const be of ins)flow(be,0,dt); continue; }
+    const avails=ins.map(be=>{ const src=nodes[be.src]; return Math.min(be.cap*dt/60, (src.type==="splitter"||src.type==="merger")?(src.buf||0):(src.outBuf[g]||0)); });
+    const totalAvail=avails.reduce((a,x)=>a+x,0);
+    const room=CAP-(m.buf||0);
+    const pull=Math.min(totalAvail, room);
+    for(let i=0;i<ins.length;i++){ const share=totalAvail>0?pull*avails[i]/totalAvail:0;
+      const src=nodes[ins[i].src];
+      if(share>0){ if(src.type==="splitter"||src.type==="merger")src.buf-=share; else src.outBuf[g]-=share; m.buf=(m.buf||0)+share; flow(ins[i],share,dt); }
+      else flow(ins[i],0,dt); }
   }
   // splitters: pull into buffer already handled (they're a dst above via addIn->buf). Now push out room-weighted.
   for(const sid in splitterOut){ const s=nodes[sid]; const outs=splitterOut[sid];
     const g=s.good; if(!g){flow0(outs,dt);continue;}
-    const rooms=outs.map(be=>Math.min(BELT_T1*dt/60, roomFor(nodes[be.dst],g)));
+    const rooms=outs.map(be=>Math.min(be.cap*dt/60, roomFor(nodes[be.dst],g)));
     const totalRoom=rooms.reduce((a,x)=>a+x,0);
-    const avail=Math.min(s.buf, totalRoom, BELT_T1*dt/60*outs.length);
+    const totalCap=outs.reduce((a,be)=>a+be.cap,0);
+    const avail=Math.min(s.buf, totalRoom, totalCap*dt/60);
     for(let i=0;i<outs.length;i++){ const share=totalRoom>0?avail*rooms[i]/totalRoom:0;
       if(share>0){ s.buf-=share; addIn(nodes[outs[i].dst],g,share); flow(outs[i],share,dt);} else flow(outs[i],0,dt); }
   }
@@ -196,7 +218,7 @@ function sim(dt){
   for(const be of belts) advSprites(be,dt);
 }
 function anyInput(b,r){ return r.in.every(([g,q])=>(b.inBuf[g]||0)>=q-1e-9); }
-function addIn(d,g,amt){ if(d.type==="splitter"){ if(!d.good)d.good=g; d.buf=(d.buf||0)+amt; }
+function addIn(d,g,amt){ if(d.type==="splitter"||d.type==="merger"||d.type==="storageroom"){ if(!d.good)d.good=g; d.buf=(d.buf||0)+amt; }
   else d.inBuf[g]=(d.inBuf[g]||0)+amt; }
 function powerScale(kw,dt,demand){ if(CFG.autoPower)return{f:1,d:demand};
   const need=kw*dt/60; if(battery>=demand+need)return{f:1,d:demand+need};
@@ -225,11 +247,11 @@ function routeBetween(a,b){ // BFS through empty cells from a neighbor of a to a
     for(const[nx,ny]of neighbors(x,y)){ const nk=ny*GW+nx; if(seen.has(nk)||!isEmpty(nx,ny))continue; seen.add(nk); prev[nk]=k; q.push([nx,ny]); } }
   return null;
 }
-function connect(srcId,dstId){ const s=nodes[srcId], d=nodes[dstId]; if(!s||!d)return{err:"missing"};
+function connect(srcId,dstId,tier){ const s=nodes[srcId], d=nodes[dstId]; if(!s||!d)return{err:"missing"}; tier=(tier===2)?2:1;
   // determine good
   let good=null;
   const outs=outGoods(s);
-  if(s.type==="splitter"){ good=s.good; } else if(s.type==="extractor"){ good=s.good; }
+  if(s.type==="splitter"||s.type==="merger"||s.type==="storageroom"){ good=s.good; } else if(s.type==="extractor"){ good=s.good; }
   else { // machine: pick an output good not already fully occupied
     for(const g of RECIPES[s.recipeId].out.map(x=>x[0])){ if(!s.outBelt[g]){ good=g; break; } }
   }
@@ -241,14 +263,16 @@ function connect(srcId,dstId){ const s=nodes[srcId], d=nodes[dstId]; if(!s||!d)r
   // dest accept
   if(d.type==="terminal"){ if(good!==targetGood)return{err:"Terminal wants "+ITEMS[targetGood].n}; }
   else if(d.type==="splitter"){ if(inBeltCount(d)>=1)return{err:"Splitter input already used"}; if(d.good&&d.good!==good)return{err:"Splitter carries "+ITEMS[d.good].n}; }
+  else if(d.type==="merger"){ if(inBeltCount(d)>=3)return{err:"Merger already has 3 inputs"}; if(d.good&&d.good!==good)return{err:"Merger carries "+ITEMS[d.good].n}; }
+  else if(d.type==="storageroom"){ if(inBeltCount(d)>=1)return{err:"Storage Room input already used"}; if(d.good&&d.good!==good)return{err:"Storage Room carries "+ITEMS[d.good].n}; }
   else if(d.type==="extractor"||d.type==="generator"){ return{err:"Can't feed that"}; }
   else { const ing=RECIPES[d.recipeId].in.map(x=>x[0]); if(!ing.includes(good))return{err:ITEMS[good].n+" isn't an input here"}; if(d.inBelt[good])return{err:"That input port is used"}; }
   const path=routeBetween(s,d); if(!path)return{err:"No clear belt path — route around, or move a machine"};
-  const be={id:nextId++,src:srcId,dst:dstId,good,path,sprites:[],flow:0};
+  const be={id:nextId++,src:srcId,dst:dstId,good,path,sprites:[],flow:0,tier,cap:CFG.beltCap["t"+tier]};
   for(const[x,y]of path)cell[y][x]={t:"belt",id:be.id};
   belts.push(be);
   if(s.type==="splitter"){} else s.outBelt[good]=be.id;
-  if(d.type==="splitter"){d.good=good;} else if(d.type!=="terminal")d.inBelt[good]=be.id;
+  if(d.type==="splitter"){d.good=good;} else if(d.type==="merger"||d.type==="storageroom"){ if(!d.good)d.good=good; } else if(d.type!=="terminal")d.inBelt[good]=be.id;
   return{ok:be};
 }
 
@@ -256,8 +280,8 @@ function connect(srcId,dstId){ const s=nodes[srcId], d=nodes[dstId]; if(!s||!d)r
 function canPlace(type,x,y){ const c=cell[y][x];
   if(type==="extractor")return c&&c.t==="dep";
   return !c; }
-function place(type,x,y,recipeId){ if(!canPlace(type,x,y))return null;
-  if(type==="extractor")return makeNode("extractor",x,y);
+function place(type,x,y,recipeId,tier){ if(!canPlace(type,x,y))return null;
+  if(type==="extractor")return makeNode("extractor",x,y,null,tier);
   if(type==="generator"){ const b={id:nextId++,type:"generator",x,y}; nodes[b.id]=b; cell[y][x]={t:"bld",id:b.id}; return b; }
   return makeNode(type,x,y,recipeId); }
 
@@ -284,7 +308,7 @@ function draw(){
     // connect from src edge to first, and last to dst edge
     const s=nodes[be.src], d=nodes[be.dst];
     const full=[[cx(s.x),cy(s.y)],...pts,[cx(d.x),cy(d.y)]];
-    ctx.strokeStyle="#39424f"; ctx.lineWidth=CS*0.34; ctx.lineJoin="round"; ctx.lineCap="round";
+    ctx.strokeStyle=be.tier===2?"#3f6a7f":"#39424f"; ctx.lineWidth=be.tier===2?CS*0.4:CS*0.34; ctx.lineJoin="round"; ctx.lineCap="round";
     ctx.beginPath(); ctx.moveTo(full[0][0],full[0][1]); for(let i=1;i<full.length;i++)ctx.lineTo(full[i][0],full[i][1]); ctx.stroke();
     // stall tint if dst input full
     // sprites
@@ -307,12 +331,14 @@ function drawBld(b){ const x=OX+b.x*CS, y=OY+b.y*CS, meta=BUILD[b.type];
   let label=meta.label.split(" ")[0]; if(b.type==="smelter")label="Smelt"; if(b.type==="fabricator")label=RECIPES[b.recipeId].name.split(" ")[0];
   ctx.fillText(label,x+CS/2,y+CS*0.42);
   ctx.font=`${CS*0.15}px sans-serif`;
-  if(b.type==="extractor")ctx.fillText(Math.round(b.rate)+"/m",x+CS/2,y+CS*0.62);
+  if(b.type==="extractor")ctx.fillText("T"+b.tier+" "+Math.round(b.rate)+"/m",x+CS/2,y+CS*0.62);
   else if(b.recipeId)ctx.fillText(Math.round(b.util*100)+"%",x+CS/2,y+CS*0.62);
   else if(b.type==="terminal"){ctx.fillText(delivered.toFixed(0)+"/"+quota,x+CS/2,y+CS*0.62);}
   else if(b.type==="splitter")ctx.fillText("1→3",x+CS/2,y+CS*0.62);
+  else if(b.type==="merger")ctx.fillText(inBeltCount(b)+"→1",x+CS/2,y+CS*0.62);
+  else if(b.type==="storageroom")ctx.fillText(Math.round(b.buf||0)+"/"+BIGCAP,x+CS/2,y+CS*0.62);
   // buffer gauges
-  if(b.type!=="splitter"&&b.type!=="terminal"){ const outs=Object.keys(b.outBuf); if(outs.length){ const g=outs[0];
+  if(b.type!=="splitter"&&b.type!=="terminal"&&b.type!=="merger"&&b.type!=="storageroom"){ const outs=Object.keys(b.outBuf); if(outs.length){ const g=outs[0];
     gauge(x+CS-6,y+4,4,CS-8,(b.outBuf[g]||0)/CAP,ITEMS[g].c); }
     const ins=Object.keys(b.inBuf); if(ins.length){ gauge(x+2,y+4,4,CS-8,(b.inBuf[ins[0]]||0)/CAP,"#d9a441"); } }
   if(b.stalled){ctx.fillStyle="#e0554f";ctx.font=`bold ${CS*0.13}px sans-serif`;ctx.fillText("STALL",x+CS/2,y+CS*0.8);}
@@ -330,6 +356,8 @@ function updateAnalyze(){ const el=document.getElementById("analyzeBody"); if(!d
     if(b.type==="extractor"){ rate=Math.round(b.outBuf[b.good]>=CAP?0:b.rate)+"/m"; sub="out "+Math.round(b.outBuf[b.good])+"/"+CAP; }
     else if(b.type==="terminal"){ rate=delivered.toFixed(0)+"/"+quota; sub=ITEMS[targetGood].n; }
     else if(b.type==="splitter"){ rate="buf "+Math.round(b.buf||0); sub="1→"+outBeltCount(b); }
+    else if(b.type==="merger"){ rate="buf "+Math.round(b.buf||0); sub=inBeltCount(b)+"→1"; }
+    else if(b.type==="storageroom"){ rate="buf "+Math.round(b.buf||0)+"/"+BIGCAP; sub=b.good?ITEMS[b.good].n:"empty"; }
     else{ const r=RECIPES[b.recipeId]; const og=r.out[0]; rate=Math.round(b.util*rpm(og[1],r.sec))+"/m "+Math.round(b.util*100)+"%";
       sub="in "+Math.round(b.inBuf[r.in[0][0]])+" · out "+Math.round(b.outBuf[og[0]]); }
     const nm=b.type==="fabricator"?RECIPES[b.recipeId].name:BUILD[b.type].label;
@@ -340,20 +368,20 @@ function updateAnalyze(){ const el=document.getElementById("analyzeBody"); if(!d
 }
 
 // ---------------------------------------------------------------- INPUT / UI
-let mode=null, placeType=null, beltFrom=null, pendingPlace=null;
+let mode=null, placeType=null, beltFrom=null, pendingPlace=null, beltTier=1;
 const hint=document.getElementById("hint");
 function setHint(t,cls){ hint.innerHTML=t; hint.className=cls||""; }
 function buildPalette(){ const P=document.getElementById("palette"); P.innerHTML="";
-  const items=[["extractor",true],["smelter",true],["fabricator",true],["splitter",tierUnlocked("splitter")],["generator",true],["belt",true],["analyze",true]];
+  const items=[["extractor",true],["smelter",true],["fabricator",true],["splitter",tierUnlocked("splitter")],["merger",tierUnlocked("merger")],["storageroom",tierUnlocked("storageroom")],["generator",true],["belt1",true],["belt2",tierUnlocked("belt2")],["analyze",true]];
   for(const[t,en]of items){ const btn=document.createElement("button"); btn.className="tool"; btn.dataset.t=t;
-    if(t==="belt")btn.innerHTML="Belt<small>connect</small>"; else if(t==="analyze")btn.innerHTML="Analyze<small>rates</small>";
+    if(t==="belt1")btn.innerHTML="Belt T1<small>"+CFG.beltCap.t1+"/m</small>"; else if(t==="belt2")btn.innerHTML="Belt T2<small>"+CFG.beltCap.t2+"/m</small>"; else if(t==="analyze")btn.innerHTML="Analyze<small>rates</small>";
     else btn.innerHTML=BUILD[t].label.replace(" ","<br>")+`<small>${BUILD[t].sub}</small>`;
     btn.disabled=!en; btn.onclick=()=>selectTool(t,btn); P.appendChild(btn); } }
 function tierUnlocked(x){ return true; } // Act-1: all Tier-1/2 basics available for the slice
 function selectTool(t,btn){ document.querySelectorAll(".tool").forEach(b=>b.classList.remove("active"));
   if(t==="analyze"){ const a=document.getElementById("analyze"); a.classList.toggle("show"); if(a.classList.contains("show"))btn.classList.add("active"); mode=null; placeType=null; beltFrom=null; return; }
   btn.classList.add("active"); beltFrom=null;
-  if(t==="belt"){ mode="belt"; setHint("Belt: tap a <b>source</b> building's output, then a <b>destination</b>. Belts can't cross — they auto-route around."); }
+  if(t==="belt1"||t==="belt2"){ mode="belt"; beltTier=(t==="belt2")?2:1; setHint(`Belt T${beltTier} (${CFG.beltCap["t"+beltTier]}/m): tap a <b>source</b> building's output, then a <b>destination</b>. Belts can't cross — they auto-route around.`); }
   else { mode="place"; placeType=t; setHint(`Tap a ${t==="extractor"?"faint ore deposit":"grid cell"} to place the ${BUILD[t].label}.`); } }
 c.addEventListener("pointerdown",e=>{ const r=c.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top;
   const x=gx(px), y=gy(py); if(x<0||x>=GW||y<0||y>=GH)return;
@@ -362,12 +390,13 @@ c.addEventListener("pointerdown",e=>{ const r=c.getBoundingClientRect(); const p
     if(placeType==="generator"&&cc&&cc.t==="bld"&&nodes[cc.id].type==="generator"){ pulseGen(nodes[cc.id]); return; }
     if(!canPlace(placeType,x,y)){ setHint(placeType==="extractor"?"Extractors go on ore deposits (the faint ◆ circles).":"That cell is occupied.","warn"); return; }
     if(placeType==="smelter"||placeType==="fabricator"){ askRecipe(placeType,x,y); return; }
+    if(placeType==="extractor"){ askExtractorTier(x,y); return; }
     const b=place(placeType,x,y); if(b)setHint(`${BUILD[placeType].label} placed.`,"ok");
   } else if(mode==="belt"){
     if(cc&&cc.t==="bld"){ const b=nodes[cc.id];
       if(beltFrom==null){ beltFrom=cc.id; setHint(`From <b>${nodeName(b)}</b> — now tap the destination.`); }
-      else { const res=connect(beltFrom,cc.id); if(res.err){ setHint("⚠ "+res.err,"warn"); }
-        else { setHint("Belt connected.","ok"); } beltFrom=null; } }
+      else { const res=connect(beltFrom,cc.id,beltTier); if(res.err){ setHint("⚠ "+res.err,"warn"); }
+        else { setHint(`Belt T${beltTier} connected.`,"ok"); } beltFrom=null; } }
     else if(cc&&cc.t==="bld"===false){ setHint("Tap a building, not empty ground.","warn"); }
   } else {
     // tap generator to pulse even without tool
@@ -384,6 +413,15 @@ function askRecipe(type,x,y){ const list=Object.entries(RECIPES).filter(([id,r])
     btn.innerHTML=`<b>${r.name}</b><div class="rt">${ins} → ${outs} · ${r.sec}s → ${Math.round(rpm(r.out[0][1],r.sec))}/m</div>`;
     btn.onclick=()=>{ box.classList.remove("show"); const b=place(type,x,y,id); if(b)setHint(`${r.name} ${BUILD[type].label} placed.`,"ok"); }; opts.appendChild(btn); }
   box.classList.add("show"); }
+function askExtractorTier(x,y){ const d=cell[y][x].d;
+  const box=document.getElementById("recipePick"), opts=document.getElementById("rpOpts");
+  document.getElementById("rpTitle").textContent="Extractor — choose tier";
+  opts.innerHTML=""; CFG.extractorMult.forEach((mult,i)=>{ const tier=i+1, rate=CFG.richness[d.rich-1]*mult;
+    const btn=document.createElement("button"); btn.className="opt";
+    btn.innerHTML=`<b>T${tier} (×${mult})</b><div class="rt">${ITEMS[d.good].n} → ${rate}/m</div>`;
+    btn.onclick=()=>{ box.classList.remove("show"); const b=place("extractor",x,y,null,tier); if(b)setHint(`T${tier} Extractor placed.`,"ok"); };
+    opts.appendChild(btn); });
+  box.classList.add("show"); }
 document.getElementById("rpCancel").onclick=()=>document.getElementById("recipePick").classList.remove("show");
 
 // ---------------------------------------------------------------- LOOP
@@ -399,22 +437,89 @@ function tick(dt){ sim(dt);
 function updateHeader(){ document.getElementById("powerLbl").textContent="⚡ "+Math.round(battery)+(brownout?" · BROWNOUT":"");
   document.getElementById("powerLbl").style.color=brownout?"#e0554f":(battery<CFG.batteryCap*0.2?"#e07a3f":"#e8ecf1"); }
 
+// ---------------------------------------------------------------- SAVE / LOAD / OFFLINE EARNINGS
+const SAVE_KEY="lineBalance_save_v1";
+function saveGame(){
+  try{
+    const data={ v:1, savedAt:Date.now(), nextId, battery, delivered, quota, targetGood,
+      deposits:deposits.map(d=>({x:d.x,y:d.y,good:d.good,rich:d.rich})),
+      nodes:Object.values(nodes).map(b=>({id:b.id,type:b.type,x:b.x,y:b.y,recipeId:b.recipeId,
+        tier:b.tier,good:b.good,buf:b.buf,inBuf:b.inBuf,outBuf:b.outBuf})),
+      belts:belts.map(be=>({id:be.id,src:be.src,dst:be.dst,good:be.good,path:be.path,tier:be.tier})) };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  }catch(e){ /* storage unavailable — silently skip, game still runs in-memory */ }
+}
+function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+function offlineCatchUp(elapsedSec){
+  const capped=Math.max(0,Math.min(elapsedSec,CFG.offlineCapSec));
+  if(capped<=0)return 0;
+  const before=delivered, stepDt=2; let remaining=capped;
+  while(remaining>0){ const d=Math.min(stepDt,remaining); sim(d); remaining-=d; }
+  return delivered-before;
+}
+function fmtElapsed(sec){ const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60);
+  return h>0?`${h}h ${m}m`:`${m}m`; }
+function loadGame(){
+  let raw; try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){ return false; }
+  if(!raw)return false;
+  let data; try{ data=JSON.parse(raw); }catch(e){ return false; }
+  if(!data||data.v!==1||!Array.isArray(data.nodes)||!Array.isArray(data.belts))return false;
+  cell=Array.from({length:GH},()=>Array(GW).fill(null));
+  deposits=(data.deposits||[]).slice(); nodes={}; belts=[];
+  nextId=data.nextId||1; battery=(data.battery!=null)?data.battery:CFG.batteryCap;
+  delivered=data.delivered||0; quota=(data.quota!=null)?data.quota:40;
+  targetGood=data.targetGood||"ferrite_plate"; brownout=false;
+  for(const d of deposits){ if(!cell[d.y] || !(d.x>=0&&d.x<GW))continue; cell[d.y][d.x]={t:"dep",d}; }
+  for(const nd of data.nodes){
+    if(nd.type==="generator"){ nodes[nd.id]={id:nd.id,type:"generator",x:nd.x,y:nd.y}; cell[nd.y][nd.x]={t:"bld",id:nd.id}; continue; }
+    const b={id:nd.id,type:nd.type,x:nd.x,y:nd.y,recipeId:nd.recipeId||null,
+      inBuf:nd.inBuf||{},outBuf:nd.outBuf||{},util:0,working:false,stalled:false,inBelt:{},outBelt:{}};
+    if(nd.type==="extractor"){ b.good=nd.good; b.tier=nd.tier||1;
+      const dep=deposits.find(d=>d.x===nd.x&&d.y===nd.y);
+      b.rate=dep?CFG.richness[dep.rich-1]*CFG.extractorMult[b.tier-1]:0; }
+    if(nd.type==="splitter"||nd.type==="merger"||nd.type==="storageroom"){ b.good=nd.good||null; b.buf=nd.buf||0; }
+    nodes[nd.id]=b; cell[nd.y][nd.x]={t:"bld",id:nd.id};
+  }
+  for(const bd of data.belts){
+    const be={id:bd.id,src:bd.src,dst:bd.dst,good:bd.good,path:bd.path,sprites:[],flow:0,
+      tier:bd.tier||1,cap:CFG.beltCap["t"+(bd.tier||1)]};
+    belts.push(be);
+    for(const[x,y]of be.path)cell[y][x]={t:"belt",id:be.id};
+    const s=nodes[be.src], d=nodes[be.dst];
+    if(s&&s.type!=="splitter")s.outBelt[be.good]=be.id;
+    if(d){ if(d.type==="splitter"||d.type==="merger"||d.type==="storageroom"){ if(!d.good)d.good=be.good; }
+      else if(d.type!=="terminal")d.inBelt[be.good]=be.id; }
+  }
+  let maxId=nextId; for(const id in nodes)maxId=Math.max(maxId,+id+1); for(const be of belts)maxId=Math.max(maxId,be.id+1);
+  nextId=maxId;
+  const elapsedSec=Math.max(0,((data.savedAt?Date.now()-data.savedAt:0))/1000);
+  const gained=offlineCatchUp(elapsedSec);
+  if(elapsedSec>5){ setHint(`Welcome back — ${Math.round(gained)} ${ITEMS[targetGood]?ITEMS[targetGood].n:targetGood} collected while away (${fmtElapsed(elapsedSec)}).`,"ok"); }
+  return true;
+}
+
 // ---------------------------------------------------------------- TEST API
 window.__game={ reset, CFG, ITEMS, RECIPES,
-  place:(t,x,y,r)=>{ const b=place(t,x,y,r); return b?b.id:null; },
-  connect:(a,b)=>connect(a,b),
+  place:(t,x,y,r,tier)=>{ const b=place(t,x,y,r,tier); return b?b.id:null; },
+  connect:(a,b,tier)=>connect(a,b,tier),
   tickN:(sec)=>{ const n=Math.round(sec/CFG.dt); for(let i=0;i<n;i++)tick(CFG.dt); },
   node:id=>nodes[id],
   state:()=>({delivered,quota,battery,brownout,
-    nodes:Object.fromEntries(Object.entries(nodes).map(([k,b])=>[k,{type:b.type,util:b.util,stalled:b.stalled,inBuf:b.inBuf,outBuf:b.outBuf,buf:b.buf,rate:b.rate}])),
-    belts:belts.map(be=>({src:be.src,dst:be.dst,good:be.good,flow:be.flow,len:be.path.length}))}),
+    nodes:Object.fromEntries(Object.entries(nodes).map(([k,b])=>[k,{type:b.type,util:b.util,stalled:b.stalled,inBuf:b.inBuf,outBuf:b.outBuf,buf:b.buf,rate:b.rate,tier:b.tier}])),
+    belts:belts.map(be=>({src:be.src,dst:be.dst,good:be.good,flow:be.flow,len:be.path.length,tier:be.tier,cap:be.cap}))}),
   deposits:()=>deposits.map(d=>({x:d.x,y:d.y,good:d.good,rich:d.rich})),
   findDeposit:(good)=>{ const d=deposits.find(d=>d.good===good&&cell[d.y][d.x].t==="dep"); return d?{x:d.x,y:d.y}:null; },
+  saveGame, loadGame, clearSave,
 };
 
 // ---------------------------------------------------------------- BOOT
-reset(); buildPalette();
+if(!loadGame())reset();
+buildPalette();
 window.addEventListener("resize",()=>{resize();}); resize();
+setInterval(saveGame,5000);
+window.addEventListener("beforeunload",saveGame);
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden")saveGame(); });
+document.getElementById("newGameBtn").onclick=()=>{ if(confirm("Start a new game? This clears your save.")){ clearSave(); reset(); } };
 requestAnimationFrame(loop);
 })();
 </script>
