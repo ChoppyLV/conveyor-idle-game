@@ -46,6 +46,31 @@ async function main() {
   const browser = await chromium.launch(launchOpts);
   try {
 
+  // ---------------------------------------------------------------- build palette sanity — every BUILD-defined
+  // placeable type must have a corresponding button in the palette, or the player has no way to ever place it
+  // through the real UI even though window.__game.place() would happily build it via the data API. This exact
+  // gap once let the Assembly Terminal quietly vanish from the palette during a buildPalette() rewrite (its
+  // entry was left out of the items list) while every data-API test kept passing, since G.place('terminal',...)
+  // bypasses the palette entirely — so this section exists specifically to catch that class of regression.
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const always = ['extractor', 'smelter', 'fabricator', 'terminal', 'generator', 'belt1', 'scan', 'delete'];
+      const buttons = Array.from(document.querySelectorAll('.tool')).map(b => ({ t: b.dataset.t, disabled: b.disabled }));
+      const present = (t) => buttons.find(b => b.t === t);
+      return {
+        allPresent: always.every(t => !!present(t)),
+        allEnabledAtBoot: always.every(t => present(t) && !present(t).disabled),
+        buttonCount: buttons.length,
+        types: buttons.map(b => b.t),
+      };
+    });
+    check('build palette: core always-available tools (incl. Assembly Terminal) are present as buttons', out.allPresent, out);
+    check('build palette: those core tools are enabled (not disabled) at Tier 0', out.allEnabledAtBoot, out);
+    check('build palette: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
   // ---------------------------------------------------------------- base chain
   {
     const { page, pageErrors } = await freshPage(browser);
@@ -356,33 +381,49 @@ async function main() {
   // in the UI layer (buildPalette() disables locked tool buttons, askExtractorTier() omits locked tiers from
   // the picker) rather than as a hard runtime check inside place() — same pattern as the rest of the build UI,
   // which doesn't re-validate things like power availability at the data layer either.
+  //
+  // Tier 1 is a SINGLE good (30 Ferrite Plate), reachable from just the one starter deposit with a plain
+  // extractor->smelter->fabricator->terminal chain — mirrors Satisfactory's own HUB Upgrade 1 (10x Iron Rod,
+  // one item, before copper is even reachable). This is a deliberate fix for a real softlock an earlier
+  // version of this schedule had: it required Braided Cable (a Cuprite/copper-chain good) at Tier 1, but
+  // Scanning — the only way to ever find a Cuprite deposit — was ALSO gated behind Tier 1, an unwinnable
+  // circular dependency that a real player (Pavel) hit immediately when he tried to play the build. Scanning
+  // is now always unlocked (see the "scan" checks below), matching how Satisfactory's own Resource Scanner is
+  // available from the very start. Multi-good/multi-ore requirements only start at Tier 2, once Splitter/
+  // Merger (unlocked at Tier 1) make it practical to branch one smelter's ingot output across two fabricators.
   {
     const { page, pageErrors } = await freshPage(browser);
     const btnDisabled = (t) => page.evaluate((t) => document.querySelector(`[data-t="${t}"]`).disabled, t);
+
+    // Softlock guard: Tier 1 must be a single good, reachable from a plain extractor->smelter->fabricator
+    // chain on the one deposit the player starts with. If a future rebalance makes Tier 1 need a second good
+    // whose ore isn't the starter deposit's, the player would need to find that ore first — impossible unless
+    // Scanning also stays unlocked from the start, which is a coupling this check can't fully verify by
+    // itself, so it errs on the strict side: Tier 1 should just need ONE thing.
+    const tier1ShapeIsSoftlockSafe = await page.evaluate(() => window.__game.TIERS[0].need.length === 1);
 
     const tier0 = {
       splitterLocked: !(await page.evaluate(() => window.__game.tierUnlocked('splitter'))),
       splitterBtnDisabled: await btnDisabled('splitter'),
       belt2BtnDisabled: await btnDisabled('belt2'),
-      scanBtnDisabled: await btnDisabled('scan'),
+      scanUnlockedFromStart: await page.evaluate(() => window.__game.tierUnlocked('scan')),
+      scanBtnEnabledFromStart: !(await btnDisabled('scan')),
     };
 
     const afterTier1 = await page.evaluate(() => {
       const G = window.__game;
       const termId = G.place('terminal', 9, 9);
-      G.deliverToTerminal(termId, 'ferrite_plate', 15);
-      G.deliverToTerminal(termId, 'ferrite_rod', 15);
-      G.deliverToTerminal(termId, 'braided_cable', 20);
+      G.deliverToTerminal(termId, 'ferrite_plate', 30); // Tier 1's entire quota — one good, no Splitter/2nd-ore needed
       G.tickN(1); // sim() processes the delivery and calls advanceTier() once the quota is met
-      return { termId, techTier: G.state().techTier, splitterUnlocked: G.tierUnlocked('splitter'), mergerUnlocked: G.tierUnlocked('merger'), scanUnlocked: G.tierUnlocked('scan') };
+      return { termId, techTier: G.state().techTier, splitterUnlocked: G.tierUnlocked('splitter'), mergerUnlocked: G.tierUnlocked('merger') };
     });
-    const tier1Buttons = { splitterBtnDisabled: await btnDisabled('splitter'), scanBtnDisabled: await btnDisabled('scan'), belt2StillDisabled: await btnDisabled('belt2') };
+    const tier1Buttons = { splitterBtnDisabled: await btnDisabled('splitter'), belt2StillDisabled: await btnDisabled('belt2') };
 
     const afterTier2 = await page.evaluate((termId) => {
       const G = window.__game;
       G.deliverToTerminal(termId, 'castcrete', 20);
       G.deliverToTerminal(termId, 'ferrite_rod', 20);
-      G.deliverToTerminal(termId, 'ferrite_plate', 20);
+      G.deliverToTerminal(termId, 'braided_cable', 20);
       G.tickN(1);
       return { techTier: G.state().techTier, belt2Unlocked: G.tierUnlocked('belt2'), storageroomUnlocked: G.tierUnlocked('storageroom') };
     }, afterTier1.termId);
@@ -397,11 +438,13 @@ async function main() {
     const extractorOptionsAtTier2 = await page.evaluate(() => Array.from(document.querySelectorAll('#rpOpts .opt')).length);
     await page.click('#rpCancel');
 
-    check('tier gating: locked tools are disabled at Tier 0', tier0.splitterLocked && tier0.splitterBtnDisabled && tier0.belt2BtnDisabled && tier0.scanBtnDisabled, tier0);
-    check('tier gating: delivering Tier 1\'s full quota (all 3 goods) advances techTier to 1', afterTier1.techTier === 1, afterTier1);
-    check('tier gating: Splitter/Merger/Scan unlock together at Tier 1', afterTier1.splitterUnlocked && afterTier1.mergerUnlocked && afterTier1.scanUnlocked, afterTier1);
-    check('tier gating: Splitter/Scan tool buttons become enabled at Tier 1, Belt T2 stays locked', !tier1Buttons.splitterBtnDisabled && !tier1Buttons.scanBtnDisabled && tier1Buttons.belt2StillDisabled, tier1Buttons);
-    check('tier gating: delivering Tier 2\'s full quota advances techTier to 2', afterTier2.techTier === 2, afterTier2);
+    check('tier gating: Tier 1 is a single good (softlock guard — reachable from the starter deposit alone)', tier1ShapeIsSoftlockSafe, tier1ShapeIsSoftlockSafe);
+    check('tier gating: Splitter/Belt T2 are locked at Tier 0', tier0.splitterLocked && tier0.splitterBtnDisabled && tier0.belt2BtnDisabled, tier0);
+    check('tier gating: Scan is unlocked from the very start (not gated), so it can never softlock Tier 1', tier0.scanUnlockedFromStart && tier0.scanBtnEnabledFromStart, tier0);
+    check("tier gating: delivering Tier 1's single-good quota (30 Ferrite Plate, from just the starter deposit) advances techTier to 1", afterTier1.techTier === 1, afterTier1);
+    check('tier gating: Splitter/Merger unlock together at Tier 1', afterTier1.splitterUnlocked && afterTier1.mergerUnlocked, afterTier1);
+    check('tier gating: Splitter tool button becomes enabled at Tier 1, Belt T2 stays locked', !tier1Buttons.splitterBtnDisabled && tier1Buttons.belt2StillDisabled, tier1Buttons);
+    check("tier gating: delivering Tier 2's full quota (3 goods: Castcrete/Ferrite Rod/Braided Cable) advances techTier to 2", afterTier2.techTier === 2, afterTier2);
     check('tier gating: Belt T2/Storage Room unlock at Tier 2', afterTier2.belt2Unlocked && afterTier2.storageroomUnlocked, afterTier2);
     check('tier gating: Belt T2/Storage Room tool buttons become enabled at Tier 2', !tier2Buttons.belt2BtnDisabled && !tier2Buttons.storageroomBtnDisabled, tier2Buttons);
     check('tier gating: extractor tier picker offers only T1+T2 (not T3) at Tier 2', extractorOptionsAtTier2 === 2, extractorOptionsAtTier2);
@@ -439,48 +482,63 @@ async function main() {
     const { page, pageErrors } = await freshPage(browser);
     const out = await page.evaluate(() => {
       const G = window.__game;
-      // Build ALL THREE of Tier 1's required goods (ferrite_plate, ferrite_rod, braided_cable), not just one —
-      // a single-good chain plateaus at that good's own per-tier cap almost immediately (by design: once a
-      // good's tier-requirement is met, further units of it don't count further until the tier advances), so
-      // it can't demonstrate a full hour of genuine offline progress. This mirrors what a real player's base
-      // would look like while working toward Tier 1.
-      // Three spatially-independent, single-purpose chains (one per required Tier-1 good), each rooted
-      // at a different fixed ore-deposit seed, all converging on a centrally-placed terminal. This avoids
-      // grid congestion from BFS auto-routed belts winding through a shared cluster (a splitter-based
-      // single-cluster layout was tried first and failed with "No clear belt path" on the third connection
-      // once the first two belts had already consumed most of the grid).
-      const depPlate = G.deposits().find(d => d.good === 'ferrite_ore' && d.rich === 1);
-      const depRod = G.deposits().find(d => d.good === 'ferrite_ore' && d.rich === 2);
-      const depCable = G.deposits().find(d => d.good === 'cuprite_ore' && d.rich === 1);
+      // Reproduces a realistic played-for-a-bit-then-left-running base: a Tier-1 chain (single good, from the
+      // starter deposit alone) is built and connected first — this is the only chain that CAN be wired to the
+      // terminal while Tier 0 is active, since the terminal only accepts goods in the *current* tier's need
+      // list. It's ticked live until Tier 1 completes, at which point three more independent chains (Rod,
+      // Cable, Castcrete — Tier 2's requirement) are connected, now that they're valid deliveries. Only then
+      // is the game saved and offline catch-up simulated, so the 1-hour jump gets to carry the base through
+      // Tier 1 -> Tier 2 for real, the way a player's session actually would.
+      //
+      // Every connection here uses an EXPLICIT path (this game's manual belt-drawing model, and the same 4th
+      // argument the real UI always supplies) instead of relying on BFS auto-routing to guess a path through
+      // an increasingly-congested grid — a prior version of this test that used auto-routing intermittently
+      // failed with "No clear belt path" once enough belts had claimed cells near the shared terminal. Explicit
+      // paths make the whole layout deterministic. Four independent chains (one per required good), each
+      // rooted at its own fixed ore-deposit seed, all converge on one centrally-placed terminal.
+      const depPlate = G.deposits().find(d => d.good === 'ferrite_ore' && d.rich === 1); // (2,3)
+      const depRod = G.deposits().find(d => d.good === 'ferrite_ore' && d.rich === 2 && d.x === 3); // (3,7)
+      const depCable = G.deposits().find(d => d.good === 'cuprite_ore' && d.rich === 1 && d.x === 6); // (6,2)
+      const depCast = G.deposits().find(d => d.good === 'chalkstone'); // (8,9)
 
       const exPlate = G.place('extractor', depPlate.x, depPlate.y, null, 1);
       const smPlate = G.place('smelter', depPlate.x, depPlate.y + 1, 'smelt_ferrite');
       const fabPlate = G.place('fabricator', depPlate.x, depPlate.y + 2, 'fab_plate');
 
       const exRod = G.place('extractor', depRod.x, depRod.y, null, 1);
-      const smRod = G.place('smelter', depRod.x + 1, depRod.y, 'smelt_ferrite');
-      const fabRod = G.place('fabricator', depRod.x + 2, depRod.y, 'fab_rod');
+      const smRod = G.place('smelter', depRod.x, depRod.y + 1, 'smelt_ferrite');
+      const fabRod = G.place('fabricator', depRod.x, depRod.y + 2, 'fab_rod');
 
       const exCable = G.place('extractor', depCable.x, depCable.y, null, 1);
       const smCable = G.place('smelter', depCable.x, depCable.y + 1, 'smelt_cuprite');
       const fabFil = G.place('fabricator', depCable.x, depCable.y + 2, 'fab_filament');
       const fabCable = G.place('fabricator', depCable.x, depCable.y + 3, 'fab_cable');
 
+      const exCast = G.place('extractor', depCast.x, depCast.y, null, 1); // Castcrete's fabricator eats raw
+      const fabCast = G.place('fabricator', depCast.x + 1, depCast.y, 'fab_castcrete'); // Chalkstone directly, no smelter
+
       const termId = G.place('terminal', 8, 6);
-      const cks = [
-        G.connect(exPlate, smPlate), G.connect(smPlate, fabPlate),
-        G.connect(exRod, smRod), G.connect(smRod, fabRod),
-        G.connect(exCable, smCable), G.connect(smCable, fabFil), G.connect(fabFil, fabCable),
-        G.connect(fabPlate, termId), G.connect(fabRod, termId), G.connect(fabCable, termId),
-      ];
-      const allConnectsOk = cks.every(c => !c.err);
-      // Save immediately after wiring, before any production has accumulated (deliveredBefore === 0).
-      // Production rates are scaled way up (RATE_SCALE) for this game's fast-idle feel, so a chain like
-      // this one blows through Tier 1's whole quota within a couple of *simulated* seconds — pre-ticking
-      // even a few seconds in real time before saving would already bank most of the progress this test
-      // is trying to attribute to the offline window, making "gained" look artificially small or even zero.
-      // Saving at t=0 and letting the full offline hour (simulated in the reload below) do all the work
-      // isolates exactly what offline catch-up contributes.
+
+      const c1 = G.connect(exPlate, smPlate, 1, []);   // [] = directly-adjacent, no belt cells needed
+      const c2 = G.connect(smPlate, fabPlate, 1, []);
+      const c3 = G.connect(exRod, smRod, 1, []);
+      const c4 = G.connect(smRod, fabRod, 1, []);
+      const c5 = G.connect(exCable, smCable, 1, []);
+      const c6 = G.connect(smCable, fabFil, 1, []);
+      const c7 = G.connect(fabFil, fabCable, 1, []);
+      const c9 = G.connect(exCast, fabCast, 1, []);
+      const c8 = G.connect(fabPlate, termId, 1, [[2, 6], [3, 6], [4, 6], [5, 6], [6, 6], [7, 6]]); // Tier 0-valid
+
+      let ticks = 0;
+      while (G.state().techTier === 0 && ticks < 600) { G.tickN(1); ticks++; } // live-tick to Tier 1
+      const techTierAfterLive = G.state().techTier;
+
+      // Only valid to connect now that Tier 2 is the active tier and needs these goods:
+      const c10 = G.connect(fabRod, termId, 1, [[4, 9], [5, 9], [6, 9], [7, 9], [7, 8], [7, 7], [8, 7]]);
+      const c11 = G.connect(fabCable, termId, 1, [[7, 5], [8, 5]]);
+      const c12 = G.connect(fabCast, termId, 1, [[9, 8], [9, 7], [9, 6]]);
+
+      const allConnectsOk = [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12].every(c => !c.err);
       const deliveredBefore = G.state().lifetimeDelivered;
       G.saveGame();
       const raw = JSON.parse(localStorage.getItem('lineBalance_save_v2'));
@@ -490,14 +548,280 @@ async function main() {
       const deliveredAfter = window.__game.state().lifetimeDelivered;
       const techTierAfter = window.__game.state().techTier;
       const noSaveFallback = (window.__game.clearSave(), window.__game.loadGame() === false);
-      return { allConnectsOk, ok, deliveredBefore, deliveredAfter, gained: deliveredAfter - deliveredBefore, techTierAfter, noSaveFallback };
+      return { allConnectsOk, techTierAfterLive, ok, deliveredBefore, deliveredAfter, gained: deliveredAfter - deliveredBefore, techTierAfter, noSaveFallback };
     });
-    check('offline catch-up: full Tier-1 chain (3 goods) connects cleanly', out.allConnectsOk, out);
+    check('offline catch-up: Tier-1 chain plus the three Tier-2 chains all connect cleanly (explicit paths)', out.allConnectsOk, out);
+    check('offline catch-up: Tier 1 (single-good, starter-deposit-only) completes from live ticking before the save', out.techTierAfterLive === 1, out);
     check('offline catch-up: loadGame() returns true when a save exists', out.ok, out);
-    check('offline catch-up: 1 simulated hour away increases lifetimeDelivered substantially', out.gained > out.deliveredBefore, out);
-    check('offline catch-up: Tier 1 completes during the offline window (all 3 goods kept flowing)', out.techTierAfter >= 1, out);
+    check('offline catch-up: 1 simulated hour away increases lifetimeDelivered substantially', out.gained > 0, out);
+    check('offline catch-up: Tier 2 (3 goods) completes during the offline window', out.techTierAfter >= 2, out);
     check('offline catch-up: loadGame() returns false with no save present (clean fallback to reset())', out.noSaveFallback, out);
     check('save/load: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- delete tool (buildings + belts)
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const ex = G.place('extractor', 2, 3, null, 1);
+      const sm = G.place('smelter', 2, 4, 'smelt_ferrite');
+      const c = G.connect(ex, sm, 1, []);
+      const beltId = c.ok.id;
+      G.tickN(1);
+      const beltsBefore = G.state().belts.length;
+      const beltDeleteOk = G.deleteBelt(beltId);
+      const beltsAfterBeltDelete = G.state().belts.length;
+      const exPortFreedAfterBeltDelete = Object.keys(G.node(ex).outBelt).length === 0;
+      const reconnectAfterBeltDelete = G.connect(ex, sm, 1, []); // should succeed now the port is free again
+      const nodesBeforeBldDelete = Object.keys(G.state().nodes).length;
+      const bldDeleteOk = G.deleteBuilding(sm);
+      const nodesAfterBldDelete = Object.keys(G.state().nodes).length;
+      const beltsAfterBldDelete = G.state().belts.length; // deleting the smelter should cascade-delete its belt too
+      const exPortFreedAfterBldDelete = Object.keys(G.node(ex).outBelt).length === 0;
+      // deleting an extractor should return its cell to a placeable (undiscovered-but-known) deposit spot
+      const canReplaceExtractor = G.deleteBuilding(ex) && G.place('extractor', 2, 3, null, 1) !== null;
+      return {
+        beltsBefore, beltDeleteOk, beltsAfterBeltDelete, exPortFreedAfterBeltDelete,
+        reconnectErr: reconnectAfterBeltDelete.err || null,
+        nodesBeforeBldDelete, bldDeleteOk, nodesAfterBldDelete, beltsAfterBldDelete, exPortFreedAfterBldDelete,
+        canReplaceExtractor,
+      };
+    });
+    check('delete: deleteBelt() removes the belt and frees the source port', out.beltDeleteOk && out.beltsBefore === 1 && out.beltsAfterBeltDelete === 0 && out.exPortFreedAfterBeltDelete, out);
+    check('delete: the same pair can be reconnected immediately after its old belt is deleted', out.reconnectErr === null, out);
+    check('delete: deleteBuilding() cascade-deletes every belt touching that building', out.bldDeleteOk && out.beltsAfterBldDelete === 0 && out.nodesAfterBldDelete === out.nodesBeforeBldDelete - 1, out);
+    check('delete: deleting a building frees its neighbor\'s port too', out.exPortFreedAfterBldDelete, out);
+    check('delete: deleting an extractor lets you place a new one on the same (still-known) deposit', out.canReplaceExtractor, out);
+    check('delete: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // same coverage, but driven through the real pointer/canvas UI (Delete tool button + taps), not just the data API
+    const { page, pageErrors } = await freshPage(browser);
+    async function clickCell(page, x, y) {
+      const p = await page.evaluate(([x, y]) => window.__game.cellPx(x, y), [x, y]);
+      const rect = await page.evaluate(() => { const r = document.getElementById('c').getBoundingClientRect(); return { left: r.left, top: r.top }; });
+      await page.mouse.click(rect.left + p.x, rect.top + p.y);
+    }
+    const ids = await page.evaluate(() => {
+      const ex = window.__game.place('extractor', 2, 3, null, 1);
+      const sm = window.__game.place('smelter', 2, 4, 'smelt_ferrite');
+      const fab = window.__game.place('fabricator', 2, 8, 'fab_plate');
+      window.__game.connect(ex, sm, 1, []);
+      return { ex, sm, fab };
+    });
+    await page.click('[data-t="belt1"]');
+    await clickCell(page, 2, 4); await clickCell(page, 2, 5); await clickCell(page, 2, 6); await clickCell(page, 2, 7); await clickCell(page, 2, 8);
+    const beltsBefore = await page.evaluate(() => window.__game.state().belts.length);
+    await page.click('[data-t="delete"]');
+    await clickCell(page, 2, 6); // a mid-belt cell, not a building
+    const afterBeltTapHint = await page.textContent('#hint');
+    const beltsAfterCellDelete = await page.evaluate(() => window.__game.state().belts.length);
+    await clickCell(page, 2, 4); // now the smelter building itself
+    const afterBldTapHint = await page.textContent('#hint');
+    const state = await page.evaluate(() => window.__game.state());
+    check('delete (real UI): tapping a belt cell with the Delete tool removes just that belt', beltsBefore === 2 && beltsAfterCellDelete === 1, { beltsBefore, beltsAfterCellDelete, afterBeltTapHint });
+    check('delete (real UI): tapping a building with the Delete tool removes it (and its remaining belt)', /removed/i.test(afterBldTapHint) && !state.nodes[ids.sm], { afterBldTapHint, nodes: Object.keys(state.nodes) });
+    check('delete (real UI): zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- recipe change in place (no rebuild)
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const sm = G.place('smelter', 2, 4, 'smelt_ferrite');
+      const ex = G.place('extractor', 2, 3, null, 1);
+      G.connect(ex, sm, 1, []);
+      const blockedWhileConnected = G.changeRecipe(sm, 'smelt_cuprite'); // should be refused — belts still attached
+      const recipeUnchanged = G.node(sm).recipeId === 'smelt_ferrite';
+      G.deleteBuilding(ex); // frees the smelter's ports
+      const changedOk = G.changeRecipe(sm, 'smelt_cuprite');
+      const node = G.node(sm);
+      const invalidType = G.changeRecipe(sm, 'fab_bolts'); // a fabricator recipe on a smelter — must be rejected
+      return {
+        blockedErr: blockedWhileConnected.err || null, recipeUnchanged,
+        changedOk: !!(changedOk && changedOk.ok), newRecipeId: node.recipeId,
+        newInBuf: node.inBuf, newOutBuf: node.outBuf,
+        invalidTypeErr: invalidType.err || null,
+      };
+    });
+    check('recipe change: refused while any belt is still connected (in or out)', out.blockedErr && out.recipeUnchanged, out);
+    check('recipe change: succeeds once fully disconnected, and swaps to the new recipe', out.changedOk && out.newRecipeId === 'smelt_cuprite', out);
+    check('recipe change: buffers reset to match the new recipe\'s goods (no stale ferrite left in a cuprite buffer)', 'cuprite_ore' in out.newInBuf && !('ferrite_ore' in out.newInBuf) && 'cuprite_ingot' in out.newOutBuf, out);
+    check('recipe change: rejects a recipe belonging to the wrong building type', !!out.invalidTypeErr, out);
+    check('recipe change: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- building info panel + tier progress panel (real UI)
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    async function clickCell(page, x, y) {
+      const p = await page.evaluate(([x, y]) => window.__game.cellPx(x, y), [x, y]);
+      const rect = await page.evaluate(() => { const r = document.getElementById('c').getBoundingClientRect(); return { left: r.left, top: r.top }; });
+      await page.mouse.click(rect.left + p.x, rect.top + p.y);
+    }
+    await page.evaluate(() => window.__game.place('smelter', 2, 4, 'smelt_ferrite'));
+    await clickCell(page, 2, 4); // no tool active — should open the building-info modal, not place/connect anything
+    const infoShown = await page.evaluate(() => document.getElementById('infoModal').classList.contains('show'));
+    const infoBody = await page.textContent('#infoBody');
+    const changeBtnDisabled = await page.$eval('#infoActions .opt', b => b.disabled).catch(() => null);
+    await page.click('#infoCancel');
+    const infoHiddenAfterCancel = await page.evaluate(() => !document.getElementById('infoModal').classList.contains('show'));
+    check('building info: tapping a building with no tool active opens the info panel', infoShown, { infoShown, infoBody });
+    check('building info: panel shows the recipe name and live buffer/rate detail', infoBody.includes('Ferrite Ingot') && infoBody.includes('Recipe'), infoBody);
+    check('building info: "Change recipe" is enabled for an unconnected machine', changeBtnDisabled === false, changeBtnDisabled);
+    check('building info: cancel closes the panel', infoHiddenAfterCancel, infoHiddenAfterCancel);
+
+    // Tier progress panel — toggled by tapping the header tier label
+    let tpShown = await page.evaluate(() => document.getElementById('tierPanel').classList.contains('show'));
+    await page.click('#tierLbl');
+    tpShown = await page.evaluate(() => document.getElementById('tierPanel').classList.contains('show'));
+    const tpBody = await page.textContent('#tierPanelBody');
+    check('tier panel: tapping the header tier label opens it', tpShown, tpShown);
+    check('tier panel: shows the current tier\'s exact remaining goods', tpBody.includes('Ferrite Plate') && tpBody.includes('0/30'), tpBody);
+    check('tier panel: previews the next tier\'s requirements too', tpBody.includes('Tier 2') && tpBody.includes('Castcrete'), tpBody);
+    check('building info + tier panel: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- Smart Splitter (multi-good combiner)
+  // Scoped answer to "conveyors should carry multiple goods / smart splitters to detach a good": belts stay
+  // single-good (no rewrite of the strict-port belt model), but this new building can hold up to 3 DIFFERENT
+  // goods at once (unlike Merger, which is same-good-only) and lets you pick which one each output belt draws —
+  // see mechanics-spec.md "Smart Splitter" for the full writeup, including why a plain Merger correctly refuses
+  // to combine two different ores (that rejection is almost certainly what read as "mergers don't work").
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      G.deliverToTerminal(G.place('terminal', 8, 6), 'ferrite_plate', 30); // unlock Tier 1... but Smart Splitter needs Tier 2
+      G.tickN(1);
+      const lockedAtTier1 = !G.tierUnlocked('smart_splitter');
+      return { lockedAtTier1 };
+    });
+    check('smart splitter: still locked right after Tier 1 (unlocks with Tier 2, alongside Storage Room/Belt T2)', out.lockedAtTier1, out);
+    check('smart splitter: zero page errors (tier-lock check)', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // Control: this is the behavior that's almost certainly behind "mergers don't work / can't connect a 2nd
+    // conveyor lane" — a Merger accepts a 2nd input belt just fine as long as it's the SAME good (confirmed
+    // repeatedly by direct reproduction — see work18_debug.js/work18_debug2.js in the session's debug history,
+    // both of which connected a 2nd same-good input with zero errors). What a Merger correctly REFUSES is a 2nd
+    // input of a DIFFERENT good — that's not a bug, it's the "same-good only" rule mechanics-spec.md documents,
+    // and Smart Splitter (below) is the real answer for combining different goods at one node.
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const depF = G.deposits().find(d => d.good === 'ferrite_ore' && d.x === 2 && d.y === 3);
+      const depC = G.deposits().find(d => d.good === 'cuprite_ore' && d.x === 6 && d.y === 2);
+      const exF = G.place('extractor', depF.x, depF.y, null, 1), smF = G.place('smelter', depF.x, depF.y + 1, 'smelt_ferrite');
+      G.connect(exF, smF, 1, []);
+      const exC = G.place('extractor', depC.x, depC.y, null, 1), smC = G.place('smelter', depC.x, depC.y + 1, 'smelt_cuprite');
+      G.connect(exC, smC, 1, []);
+      const merger = G.place('merger', 4, 5);
+      const r1 = G.connect(smF, merger, 1, [[3, 4], [3, 5]]);       // smF (2,4) -> merger (4,5)
+      const r2 = G.connect(smC, merger, 1, [[6, 4], [5, 4], [5, 5]]); // smC (6,3) -> merger (4,5), DIFFERENT good
+      return { r1Err: r1.err || null, r2Err: r2.err || null, mergerGood: G.node(merger).good };
+    });
+    check('control: a Merger accepts its first input and records the good it now carries', out.r1Err === null && out.mergerGood === 'ferrite_ingot', out);
+    check('control: a Merger correctly REFUSES a 2nd input of a DIFFERENT good (by design — not the reported bug)', !!out.r2Err, out);
+    check('control: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const term = G.place('terminal', 8, 6);
+      G.deliverToTerminal(term, 'ferrite_plate', 30); G.tickN(1);
+      G.deliverToTerminal(term, 'castcrete', 20); G.deliverToTerminal(term, 'ferrite_rod', 20); G.deliverToTerminal(term, 'braided_cable', 20); G.tickN(1);
+      const unlockedAtTier2 = G.tierUnlocked('smart_splitter');
+
+      const depF = G.deposits().find(d => d.good === 'ferrite_ore' && d.x === 2 && d.y === 3);
+      const depC = G.deposits().find(d => d.good === 'cuprite_ore' && d.x === 6 && d.y === 2);
+      const exF = G.place('extractor', depF.x, depF.y, null, 1), smF = G.place('smelter', depF.x, depF.y + 1, 'smelt_ferrite');
+      G.connect(exF, smF, 1, []);
+      const exC = G.place('extractor', depC.x, depC.y, null, 1), smC = G.place('smelter', depC.x, depC.y + 1, 'smelt_cuprite');
+      G.connect(exC, smC, 1, []);
+      const ss = G.place('smart_splitter', 4, 4);
+
+      // Smart Splitter: BOTH different-good inputs must succeed (a Merger would refuse the 2nd — see control above).
+      const r1 = G.connect(smF, ss, 1, [[3, 4]]);          // smF (2,4) -> ss (4,4)
+      const r2 = G.connect(smC, ss, 1, [[5, 3], [5, 4]]);  // smC (6,3) -> ss (4,4), DIFFERENT good
+      G.tickN(3);
+      const buf = G.node(ss).buf;
+
+      // Output side: ambiguous when 2+ goods are buffered; forcedGood resolves it; per-good dedup on a 2nd claim.
+      const fabRod = G.place('fabricator', 4, 6, 'fab_rod'); // wants ferrite_ingot
+      const ambiguous = G.connect(ss, fabRod, 1, [[4, 5]]);
+      const outWithGood = G.connect(ss, fabRod, 1, [[4, 5]], 'ferrite_ingot');
+      const dupSameGood = G.connect(ss, G.place('fabricator', 4, 3, 'fab_rod'), 1, [], 'ferrite_ingot'); // same good again -> refused (port already claimed); ss's only free neighbor left is (4,3), direct adjacency
+
+      return {
+        unlockedAtTier2,
+        r1Err: r1.err || null, r2Err: r2.err || null, buf,
+        ambiguousErr: ambiguous.err, ambiguousCandidates: ambiguous.candidates,
+        outWithGoodOk: !!outWithGood.ok, outGood: outWithGood.ok ? outWithGood.ok.good : null,
+        dupSameGoodErr: dupSameGood.err || null,
+      };
+    });
+    check('smart splitter: unlocked at Tier 2', out.unlockedAtTier2, out);
+    check('smart splitter: accepts two DIFFERENT-good inputs (ferrite_ingot + cuprite_ingot) that a Merger would refuse', out.r1Err === null && out.r2Err === null, out);
+    check('smart splitter: buffers each input good separately', out.buf && out.buf.ferrite_ingot > 0 && out.buf.cuprite_ingot > 0, out.buf);
+    check('smart splitter: connecting an output with 2+ buffered goods and no forced good is ambiguous', out.ambiguousErr === 'AMBIGUOUS_GOOD' && Array.isArray(out.ambiguousCandidates) && out.ambiguousCandidates.length === 2, out);
+    check('smart splitter: supplying an explicit good resolves the connection and the belt carries exactly that good', out.outWithGoodOk && out.outGood === 'ferrite_ingot', out);
+    check('smart splitter: a 2nd output of the SAME already-claimed good is refused (one output port per good)', !!out.dupSameGoodErr, out);
+    check('smart splitter: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // Real UI: place a Smart Splitter, wire two different-good chains into it by hand, and confirm the
+    // good-picker modal actually appears (and works) when drawing an output belt out of it.
+    const { page, pageErrors } = await freshPage(browser);
+    async function clickCell(page, x, y) {
+      const p = await page.evaluate(([x, y]) => window.__game.cellPx(x, y), [x, y]);
+      const rect = await page.evaluate(() => { const r = document.getElementById('c').getBoundingClientRect(); return { left: r.left, top: r.top }; });
+      await page.mouse.click(rect.left + p.x, rect.top + p.y);
+    }
+    await page.evaluate(() => {
+      const G = window.__game;
+      const term = G.place('terminal', 8, 6);
+      G.deliverToTerminal(term, 'ferrite_plate', 30); G.tickN(1);
+      G.deliverToTerminal(term, 'castcrete', 20); G.deliverToTerminal(term, 'ferrite_rod', 20); G.deliverToTerminal(term, 'braided_cable', 20); G.tickN(1);
+    });
+    await page.click('[data-t="smart_splitter"]');
+    await clickCell(page, 6, 4);
+    const ids = await page.evaluate(() => {
+      const G = window.__game;
+      const exC = G.place('extractor', 6, 2, null, 1), smC = G.place('smelter', 7, 2, 'smelt_cuprite');
+      G.connect(exC, smC, 1, []);
+      const exF = G.place('extractor', 3, 7, null, 1), smF = G.place('smelter', 4, 7, 'smelt_ferrite');
+      G.connect(exF, smF, 1, []);
+      return { smC, smF };
+    });
+    await page.click('[data-t="belt1"]');
+    await clickCell(page, 7, 2); await clickCell(page, 7, 3); await clickCell(page, 6, 3); await clickCell(page, 6, 4);
+    await page.click('[data-t="belt1"]');
+    await clickCell(page, 4, 7); await clickCell(page, 5, 7); await clickCell(page, 5, 6); await clickCell(page, 5, 5); await clickCell(page, 6, 5); await clickCell(page, 6, 4);
+    await page.evaluate(() => window.__game.tickN(3));
+    await page.evaluate(() => window.__game.place('fabricator', 8, 4, 'fab_rod'));
+    await page.click('[data-t="belt1"]');
+    await clickCell(page, 6, 4); await clickCell(page, 7, 4); await clickCell(page, 8, 4);
+    const modalShown = await page.evaluate(() => document.getElementById('goodPick').classList.contains('show'));
+    const opts = await page.$$eval('#gpOpts .opt', els => els.map(e => e.textContent));
+    const btns = await page.$$('#gpOpts .opt');
+    const idx = opts.findIndex(o => o.includes('Ferrite Ingot'));
+    if (idx >= 0) await btns[idx].click();
+    const hint = await page.textContent('#hint');
+    check('smart splitter (real UI): drawing an output belt with 2 buffered goods opens the good-picker modal', modalShown && opts.length === 2, { modalShown, opts });
+    check('smart splitter (real UI): picking a good from the modal completes the belt carrying that good', /connected/i.test(hint) && /Ferrite Ingot/i.test(hint), hint);
+    check('smart splitter (real UI): zero page errors', pageErrors.length === 0, pageErrors);
     await page.close();
   }
 
