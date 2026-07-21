@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Line Balance — Act 1</title>
+<style>
+  :root{
+    --bg:#12161c; --panel:#1b2129; --panel-border:#2a323d; --text:#e8ecf1;
+    --dim:#8a94a3; --accent:#4fd1c5; --warn:#e07a3f; --ok:#4fd17a;
+    --locked:#565f6c; --stall:#e0554f; --grid:#1d2430;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden;}
+  #app{display:flex;flex-direction:column;height:100%;}
+  header{padding:8px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--panel-border);}
+  header h1{font-size:15px;font-weight:600;margin:0;}
+  header .tier{font-size:11px;color:var(--dim);}
+  header .power{margin-left:auto;font-size:12px;font-variant-numeric:tabular-nums;}
+  #stage-wrap{position:relative;flex:1;overflow:hidden;background:#0d1015;}
+  canvas{display:block;touch-action:none;width:100%;height:100%;}
+  #analyze{position:absolute;top:8px;right:8px;width:230px;max-height:70%;overflow:auto;
+    background:rgba(13,16,21,.95);border:1px solid var(--accent);border-radius:10px;
+    padding:10px 12px;font-size:11px;line-height:1.45;display:none;}
+  #analyze.show{display:block;}
+  #analyze h3{margin:0 0 6px;font-size:11px;color:var(--accent);letter-spacing:.03em;}
+  #analyze .r{display:flex;justify-content:space-between;gap:8px;padding:1px 0;}
+  #analyze .r .k{color:var(--dim);}
+  #analyze .b{color:var(--text);font-weight:600;margin-top:4px;}
+  #analyze .sub{color:var(--dim);font-size:10px;}
+  #hint{position:absolute;left:8px;bottom:8px;right:8px;font-size:12px;color:var(--dim);
+    background:rgba(13,16,21,.8);border-radius:8px;padding:7px 10px;pointer-events:none;}
+  #hint.ok{color:var(--ok);} #hint.warn{color:var(--warn);} #hint.stall{color:var(--stall);}
+  footer{display:flex;gap:6px;padding:8px;border-top:1px solid var(--panel-border);overflow-x:auto;}
+  .tool{flex:0 0 auto;background:var(--panel);color:var(--text);border:1px solid var(--panel-border);
+    border-radius:9px;padding:8px 10px;font-size:12px;font-weight:600;cursor:pointer;min-width:64px;text-align:center;}
+  .tool.active{border-color:var(--accent);color:var(--accent);background:#16242a;}
+  .tool small{display:block;font-weight:400;color:var(--dim);font-size:9.5px;margin-top:1px;}
+  .tool:disabled{opacity:.4;cursor:not-allowed;}
+  #recipePick{position:absolute;inset:0;background:rgba(8,10,14,.72);display:none;align-items:center;justify-content:center;}
+  #recipePick.show{display:flex;}
+  #recipePick .card{background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;padding:14px;width:min(320px,90%);}
+  #recipePick h4{margin:0 0 10px;font-size:13px;}
+  #recipePick .opt{display:block;width:100%;text-align:left;background:#16242a;border:1px solid var(--panel-border);
+    border-radius:8px;padding:9px 11px;margin-bottom:7px;color:var(--text);font-size:12px;cursor:pointer;}
+  #recipePick .opt:hover{border-color:var(--accent);}
+  #recipePick .opt .rt{color:var(--dim);font-size:10.5px;margin-top:2px;}
+  #recipePick .cancel{color:var(--dim);font-size:11px;background:none;border:none;cursor:pointer;margin-top:2px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Line Balance</h1><span class="tier" id="tierLbl">Tier 1 · Flow</span>
+    <span class="power" id="powerLbl">⚡ 0</span>
+  </header>
+  <div id="stage-wrap">
+    <canvas id="c"></canvas>
+    <div id="analyze"><h3>ANALYZE</h3><div id="analyzeBody"></div></div>
+    <div id="hint">Tap <b>Extractor</b>, then tap a faint ore deposit to place it. Then add a Smelting Furnace and Fabricator, and connect them with Belts.</div>
+    <div id="recipePick"><div class="card"><h4 id="rpTitle">Choose recipe</h4><div id="rpOpts"></div><button class="cancel" id="rpCancel">cancel</button></div></div>
+  </div>
+  <footer id="palette"></footer>
+</div>
+<script>
+(function(){
+"use strict";
+// ---------------------------------------------------------------- CONFIG
+const CFG = Object.assign({
+  storageCap:200,       // buffer units per machine per good (scaled world)
+  beltCap:{t1:3000,t2:6000},
+  richness:[1000,3000,6000],
+  extractorMult:[1,2,4],
+  rateScale:100,        // reskinned data keeps Satisfactory RATIOS; ×100 → your 3000/min belt world
+  batteryCap:600, genPerClick:60, autoPower:false,
+  dt:1/20,              // sim seconds per fixed tick
+}, window.__config||{});
+const CAP=CFG.storageCap, BELT_T1=CFG.beltCap.t1;
+
+// ---------------------------------------------------------------- DATA (Act-1 subset; ratios from line_balance_game_data.json)
+const ITEMS={
+  ferrite_ore:{n:"Ferrite Ore",c:"#8a5a44"}, cuprite_ore:{n:"Cuprite Ore",c:"#b5734a"},
+  chalkstone:{n:"Chalkstone",c:"#c9c4b0"},
+  ferrite_ingot:{n:"Ferrite Ingot",c:"#c0c6cf"}, cuprite_ingot:{n:"Cuprite Ingot",c:"#e0864a"},
+  ferrite_plate:{n:"Ferrite Plate",c:"#9aa4b2"}, ferrite_rod:{n:"Ferrite Rod",c:"#b8bec8"},
+  bolts:{n:"Bolts",c:"#d0d6df"}, filament:{n:"Filament",c:"#e0a45c"},
+  braided_cable:{n:"Braided Cable",c:"#c8a46a"}, castcrete:{n:"Castcrete",c:"#a8a89c"},
+};
+// recipe: building, in[], out[], sec  (rates scaled by rateScale)
+const RECIPES={
+  smelt_ferrite:{name:"Ferrite Ingot",b:"smelter",in:[["ferrite_ore",1]],out:[["ferrite_ingot",1]],sec:2},
+  smelt_cuprite:{name:"Cuprite Ingot",b:"smelter",in:[["cuprite_ore",1]],out:[["cuprite_ingot",1]],sec:2},
+  fab_plate:{name:"Ferrite Plate",b:"fabricator",in:[["ferrite_ingot",3]],out:[["ferrite_plate",2]],sec:6},
+  fab_rod:{name:"Ferrite Rod",b:"fabricator",in:[["ferrite_ingot",1]],out:[["ferrite_rod",1]],sec:4},
+  fab_bolts:{name:"Bolts",b:"fabricator",in:[["ferrite_rod",1]],out:[["bolts",4]],sec:6},
+  fab_filament:{name:"Filament",b:"fabricator",in:[["cuprite_ingot",1]],out:[["filament",2]],sec:4},
+  fab_cable:{name:"Braided Cable",b:"fabricator",in:[["filament",2]],out:[["braided_cable",1]],sec:2},
+  fab_castcrete:{name:"Castcrete",b:"fabricator",in:[["chalkstone",3]],out:[["castcrete",1]],sec:4},
+};
+const rpm=(qty,sec)=>qty*60/sec*CFG.rateScale;                 // units/min in scaled world
+const POWER={extractor:100,smelter:140,fabricator:140};        // kW while working (design values)
+
+const BUILD={
+  extractor:{label:"Extractor",sub:"on deposit",color:"#d9a441"},
+  smelter:{label:"Smelt. Furnace",sub:"1→1 ingot",color:"#e0864a"},
+  fabricator:{label:"Fabricator",sub:"1 part",color:"#4fd1c5"},
+  splitter:{label:"Splitter",sub:"1→3",color:"#8f7fe0"},
+  terminal:{label:"Assembly Terminal",sub:"deliver",color:"#4fd17a"},
+  generator:{label:"Generator",sub:"tap: +"+CFG.genPerClick+"kW",color:"#c8b04a"},
+};
+
+// ---------------------------------------------------------------- GRID / WORLD
+const GW=16, GH=11;            // grid cells
+let cell, deposits, nodes, belts, nextId, battery, delivered, quota, targetGood, brownout;
+function reset(){
+  cell=Array.from({length:GH},()=>Array(GW).fill(null)); // {t:'dep'|'bld'|'belt', ...}
+  deposits=[]; nodes={}; belts=[]; nextId=1;
+  battery=CFG.batteryCap; delivered=0; quota=40; targetGood="ferrite_plate"; brownout=false;
+  seedDeposits();
+}
+function seedDeposits(){
+  const seed=[[2,3,"ferrite_ore",1],[3,7,"ferrite_ore",2],[6,2,"cuprite_ore",1],
+              [11,8,"ferrite_ore",2],[13,4,"cuprite_ore",1],[8,9,"chalkstone",1]];
+  for(const[x,y,g,r]of seed){ const d={x,y,good:g,rich:r}; deposits.push(d); cell[y][x]={t:"dep",d}; }
+}
+// ---------------------------------------------------------------- NODES
+function makeNode(type,x,y,recipeId){
+  const id=nextId++, b={id,type,x,y,recipeId:recipeId||null,
+    inBuf:{},outBuf:{},util:0,working:false,stalled:false,
+    inBelt:{},outBelt:{}}; // per-good belt refs (strict ports)
+  if(type==="extractor"){ const d=cell[y][x].d; b.good=d.good;
+    b.rate=CFG.richness[d.rich-1]*CFG.extractorMult[0]; b.outBuf[d.good]=0; }
+  if(type==="smelter"||type==="fabricator"){ const r=RECIPES[recipeId];
+    r.in.forEach(([g])=>b.inBuf[g]=0); r.out.forEach(([g])=>b.outBuf[g]=0); }
+  if(type==="splitter"){ b.good=null; b.buf=0; }
+  if(type==="terminal"){ b.inBuf[targetGood]=0; }
+  nodes[id]=b; cell[y][x]={t:"bld",id}; return b;
+}
+// ports: how many belts a node accepts
+function inGoods(b){ if(b.type==="extractor")return[]; if(b.type==="splitter")return["*"]; if(b.type==="terminal")return[targetGood];
+  return RECIPES[b.recipeId].in.map(x=>x[0]); }
+function outGoods(b){ if(b.type==="terminal"||b.type==="generator")return[]; if(b.type==="extractor")return[b.good];
+  if(b.type==="splitter")return["*","*","*"]; return RECIPES[b.recipeId].out.map(x=>x[0]); }
+function outBeltCount(b){ return belts.filter(be=>be.src===b.id).length; }
+function inBeltCount(b){ return belts.filter(be=>be.dst===b.id).length; }
+
+// ---------------------------------------------------------------- SIM
+function roomFor(b,g){ if(b.type==="terminal")return 1e9; return CAP-(b.inBuf[g]||0); }
+function sim(dt){
+  // 1. extractors + machines
+  let demand=0;
+  for(const id in nodes){ const b=nodes[id];
+    if(b.type==="extractor"){
+      const cap=Math.min(b.rate, BELT_T1*99); // extractor throttled later by belt/backpressure via outBuf room
+      const room=CAP-b.outBuf[b.good];
+      const add=Math.min(cap*dt/60, room);
+      const p=powerScale(POWER.extractor,dt,demand);
+      const got=add*p.f; b.outBuf[b.good]+=got; b.working=got>1e-9; b.util=cap>0?(got/(cap*dt/60)):0;
+      b.stalled=room<=1e-6; demand=p.d;
+    } else if(b.type==="smelter"||b.type==="fabricator"){
+      const r=RECIPES[b.recipeId]; const potCycles=(60/r.sec)*CFG.rateScale*dt/60; // cycles this tick at 100%
+      let lim=potCycles;
+      r.in.forEach(([g,q])=>lim=Math.min(lim,(b.inBuf[g]||0)/q));
+      r.out.forEach(([g,q])=>lim=Math.min(lim,(CAP-(b.outBuf[g]||0))/q));
+      const p=powerScale(POWER[b.type],dt,demand); lim*=p.f; demand=p.d;
+      if(lim<0)lim=0;
+      r.in.forEach(([g,q])=>b.inBuf[g]-=lim*q);
+      r.out.forEach(([g,q])=>b.outBuf[g]+=lim*q);
+      b.util=potCycles>0?lim/potCycles:0; b.working=lim>1e-9; b.stalled=(potCycles>lim+1e-6)&&anyInput(b,r);
+    }
+  }
+  // 2. belts transfer (rate-based, backpressure). group splitter sources for room-weighting
+  const splitterOut={};
+  for(const be of belts){ if(nodes[be.src].type==="splitter"){ (splitterOut[be.src]=splitterOut[be.src]||[]).push(be); } }
+  for(const be of belts){
+    const s=nodes[be.src], d=nodes[be.dst];
+    if(s.type==="splitter")continue; // handled below
+    const g=be.good; const avail=(s.outBuf[g]||0); const room=roomFor(d,g);
+    const move=Math.min(BELT_T1*dt/60, avail, room);
+    if(move>0){ s.outBuf[g]-=move; addIn(d,g,move); flow(be,move,dt); } else flow(be,0,dt);
+  }
+  // splitters: pull into buffer already handled (they're a dst above via addIn->buf). Now push out room-weighted.
+  for(const sid in splitterOut){ const s=nodes[sid]; const outs=splitterOut[sid];
+    const g=s.good; if(!g){flow0(outs,dt);continue;}
+    const rooms=outs.map(be=>Math.min(BELT_T1*dt/60, roomFor(nodes[be.dst],g)));
+    const totalRoom=rooms.reduce((a,x)=>a+x,0);
+    const avail=Math.min(s.buf, totalRoom, BELT_T1*dt/60*outs.length);
+    for(let i=0;i<outs.length;i++){ const share=totalRoom>0?avail*rooms[i]/totalRoom:0;
+      if(share>0){ s.buf-=share; addIn(nodes[outs[i].dst],g,share); flow(outs[i],share,dt);} else flow(outs[i],0,dt); }
+  }
+  // 3. terminal delivery
+  for(const id in nodes){ const b=nodes[id]; if(b.type==="terminal"){ const g=targetGood;
+    if(b.inBuf[g]>0){ delivered+=b.inBuf[g]; b.inBuf[g]=0; } } }
+  // 4. sprites advance
+  for(const be of belts) advSprites(be,dt);
+}
+function anyInput(b,r){ return r.in.every(([g,q])=>(b.inBuf[g]||0)>=q-1e-9); }
+function addIn(d,g,amt){ if(d.type==="splitter"){ if(!d.good)d.good=g; d.buf=(d.buf||0)+amt; }
+  else d.inBuf[g]=(d.inBuf[g]||0)+amt; }
+function powerScale(kw,dt,demand){ if(CFG.autoPower)return{f:1,d:demand};
+  const need=kw*dt/60; if(battery>=demand+need)return{f:1,d:demand+need};
+  const avail=Math.max(0,battery-demand); const f=need>0?Math.min(1,avail/need):1; return{f,d:demand+need*f}; }
+
+// ---------------------------------------------------------------- BELT SPRITES (hybrid visual only)
+function flow(be,move,dt){ be.flow=move*60/dt/CFG.rateScale; be._acc=(be._acc||0)+ (move/CFG.rateScale)*12; // spawn density
+  while(be._acc>=1){ be._acc-=1; be.sprites.push({p:0,g:be.good||spGood(be)}); } }
+function flow0(outs,dt){ for(const be of outs)flow(be,0,dt); }
+function spGood(be){ return nodes[be.src].good||be.good; }
+function advSprites(be,dt){ const spd=0.45*dt*CFG.rateScale/50*20; // visual speed
+  for(const s of be.sprites)s.p+=spd; be.sprites=be.sprites.filter(s=>s.p<1); if(be.sprites.length>60)be.sprites.length=60; }
+
+// ---------------------------------------------------------------- BELT ROUTING (strict ports + no-cross)
+function neighbors(x,y){ return [[x+1,y],[x-1,y],[x,y+1],[x,y-1]].filter(([a,b])=>a>=0&&a<GW&&b>=0&&b<GH); }
+function passable(x,y){ const c=cell[y][x]; return !c || c.t==="belt"?false:false; } // belts block (no-cross)
+function isEmpty(x,y){ return !cell[y][x]; }
+function routeBetween(a,b){ // BFS through empty cells from a neighbor of a to a neighbor of b
+  const starts=neighbors(a.x,a.y).filter(([x,y])=>isEmpty(x,y));
+  const goalCells=new Set(neighbors(b.x,b.y).filter(([x,y])=>isEmpty(x,y)).map(([x,y])=>y*GW+x));
+  if(!starts.length||!goalCells.size)return null;
+  const q=[], prev={}, seen=new Set();
+  for(const[x,y]of starts){ const k=y*GW+x; q.push([x,y]); seen.add(k); prev[k]=null; }
+  while(q.length){ const[x,y]=q.shift(); const k=y*GW+x;
+    if(goalCells.has(k)){ const path=[]; let cur=k; while(cur!=null){ path.unshift([cur%GW,(cur-cur%GW)/GW]); cur=prev[cur]; } return path; }
+    for(const[nx,ny]of neighbors(x,y)){ const nk=ny*GW+nx; if(seen.has(nk)||!isEmpty(nx,ny))continue; seen.add(nk); prev[nk]=k; q.push([nx,ny]); } }
+  return null;
+}
+function connect(srcId,dstId){ const s=nodes[srcId], d=nodes[dstId]; if(!s||!d)return{err:"missing"};
+  // determine good
+  let good=null;
+  const outs=outGoods(s);
+  if(s.type==="splitter"){ good=s.good; } else if(s.type==="extractor"){ good=s.good; }
+  else { // machine: pick an output good not already fully occupied
+    for(const g of RECIPES[s.recipeId].out.map(x=>x[0])){ if(!s.outBelt[g]){ good=g; break; } }
+  }
+  // strict-port checks
+  if(s.type==="splitter"){ if(outBeltCount(s)>=3)return{err:"Splitter already has 3 outputs"}; }
+  else if(s.type!=="extractor"){ if(good&&s.outBelt[good])return{err:"Output port already used"}; }
+  else { if(s.outBelt[good])return{err:"Extractor output already used"}; }
+  if(!good)return{err:"No free output port"};
+  // dest accept
+  if(d.type==="terminal"){ if(good!==targetGood)return{err:"Terminal wants "+ITEMS[targetGood].n}; }
+  else if(d.type==="splitter"){ if(inBeltCount(d)>=1)return{err:"Splitter input already used"}; if(d.good&&d.good!==good)return{err:"Splitter carries "+ITEMS[d.good].n}; }
+  else if(d.type==="extractor"||d.type==="generator"){ return{err:"Can't feed that"}; }
+  else { const ing=RECIPES[d.recipeId].in.map(x=>x[0]); if(!ing.includes(good))return{err:ITEMS[good].n+" isn't an input here"}; if(d.inBelt[good])return{err:"That input port is used"}; }
+  const path=routeBetween(s,d); if(!path)return{err:"No clear belt path — route around, or move a machine"};
+  const be={id:nextId++,src:srcId,dst:dstId,good,path,sprites:[],flow:0};
+  for(const[x,y]of path)cell[y][x]={t:"belt",id:be.id};
+  belts.push(be);
+  if(s.type==="splitter"){} else s.outBelt[good]=be.id;
+  if(d.type==="splitter"){d.good=good;} else if(d.type!=="terminal")d.inBelt[good]=be.id;
+  return{ok:be};
+}
+
+// ---------------------------------------------------------------- PLACEMENT
+function canPlace(type,x,y){ const c=cell[y][x];
+  if(type==="extractor")return c&&c.t==="dep";
+  return !c; }
+function place(type,x,y,recipeId){ if(!canPlace(type,x,y))return null;
+  if(type==="extractor")return makeNode("extractor",x,y);
+  if(type==="generator"){ const b={id:nextId++,type:"generator",x,y}; nodes[b.id]=b; cell[y][x]={t:"bld",id:b.id}; return b; }
+  return makeNode(type,x,y,recipeId); }
+
+// ---------------------------------------------------------------- RENDER
+const c=document.getElementById("c"), ctx=c.getContext("2d");
+let CS=40, OX=0, OY=0; // cell size + origin
+function resize(){ const w=c.clientWidth, h=c.clientHeight; c.width=w; c.height=h;
+  CS=Math.min(Math.floor(w/GW), Math.floor(h/GH)); OX=(w-CS*GW)/2; OY=(h-CS*GH)/2; }
+function gx(px){ return Math.floor((px-OX)/CS); } function gy(py){ return Math.floor((py-OY)/CS); }
+function cx(x){ return OX+x*CS+CS/2; } function cy(y){ return OY+y*CS+CS/2; }
+function draw(){
+  ctx.clearRect(0,0,c.width,c.height);
+  // grid
+  ctx.strokeStyle="var(--grid)"; ctx.strokeStyle="#1d2430"; ctx.lineWidth=1;
+  for(let x=0;x<=GW;x++){ctx.beginPath();ctx.moveTo(OX+x*CS,OY);ctx.lineTo(OX+x*CS,OY+GH*CS);ctx.stroke();}
+  for(let y=0;y<=GH;y++){ctx.beginPath();ctx.moveTo(OX,OY+y*CS);ctx.lineTo(OX+GW*CS,OY+y*CS);ctx.stroke();}
+  // deposits (faint)
+  for(const d of deposits){ if(cell[d.y][d.x].t==="dep"){ ctx.globalAlpha=.5; ctx.fillStyle=ITEMS[d.good].c;
+      ctx.beginPath(); ctx.arc(cx(d.x),cy(d.y),CS*0.32,0,6.29); ctx.fill(); ctx.globalAlpha=1;
+      ctx.fillStyle="#0d1015"; ctx.font=`bold ${CS*0.2}px sans-serif`; ctx.textAlign="center";
+      ctx.fillText("◆".repeat(d.rich),cx(d.x),cy(d.y)+CS*0.07); } }
+  // belts
+  for(const be of belts){ const pts=be.path.map(([x,y])=>[cx(x),cy(y)]);
+    // connect from src edge to first, and last to dst edge
+    const s=nodes[be.src], d=nodes[be.dst];
+    const full=[[cx(s.x),cy(s.y)],...pts,[cx(d.x),cy(d.y)]];
+    ctx.strokeStyle="#39424f"; ctx.lineWidth=CS*0.34; ctx.lineJoin="round"; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(full[0][0],full[0][1]); for(let i=1;i<full.length;i++)ctx.lineTo(full[i][0],full[i][1]); ctx.stroke();
+    // stall tint if dst input full
+    // sprites
+    for(const sp of be.sprites){ const P=lerpPath(full,sp.p); ctx.fillStyle=ITEMS[sp.g]?ITEMS[sp.g].c:"#ccc";
+      ctx.beginPath(); ctx.arc(P[0],P[1],CS*0.11,0,6.29); ctx.fill(); }
+  }
+  // buildings
+  for(const id in nodes){ const b=nodes[id]; if(b.type==="generator"){drawGen(b);continue;} drawBld(b); }
+  // pending connect highlight
+  if(mode==="belt"&&beltFrom){ const b=nodes[beltFrom]; ctx.strokeStyle="var(--accent)"; ctx.strokeStyle="#4fd1c5";
+    ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.strokeRect(OX+b.x*CS+3,OY+b.y*CS+3,CS-6,CS-6); ctx.setLineDash([]); }
+}
+function lerpPath(pts,t){ // t 0..1 across whole polyline
+  let tot=0; const segs=[]; for(let i=1;i<pts.length;i++){ const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]); segs.push(d); tot+=d; }
+  let dd=t*tot; for(let i=0;i<segs.length;i++){ if(dd<=segs[i]){ const f=segs[i]>0?dd/segs[i]:0; return[pts[i][0]+(pts[i+1][0]-pts[i][0])*f,pts[i][1]+(pts[i+1][1]-pts[i][1])*f]; } dd-=segs[i]; } return pts[pts.length-1]; }
+function drawBld(b){ const x=OX+b.x*CS, y=OY+b.y*CS, meta=BUILD[b.type];
+  ctx.fillStyle=b.stalled?"#3a2422":meta.color; ctx.fillRect(x+2,y+2,CS-4,CS-4);
+  ctx.strokeStyle=b.stalled?"#e0554f":"rgba(255,255,255,.15)"; ctx.lineWidth=b.stalled?2:1; ctx.strokeRect(x+2.5,y+2.5,CS-5,CS-5);
+  ctx.fillStyle="#0d1015"; ctx.textAlign="center"; ctx.font=`bold ${CS*0.18}px sans-serif`;
+  let label=meta.label.split(" ")[0]; if(b.type==="smelter")label="Smelt"; if(b.type==="fabricator")label=RECIPES[b.recipeId].name.split(" ")[0];
+  ctx.fillText(label,x+CS/2,y+CS*0.42);
+  ctx.font=`${CS*0.15}px sans-serif`;
+  if(b.type==="extractor")ctx.fillText(Math.round(b.rate)+"/m",x+CS/2,y+CS*0.62);
+  else if(b.recipeId)ctx.fillText(Math.round(b.util*100)+"%",x+CS/2,y+CS*0.62);
+  else if(b.type==="terminal"){ctx.fillText(delivered.toFixed(0)+"/"+quota,x+CS/2,y+CS*0.62);}
+  else if(b.type==="splitter")ctx.fillText("1→3",x+CS/2,y+CS*0.62);
+  // buffer gauges
+  if(b.type!=="splitter"&&b.type!=="terminal"){ const outs=Object.keys(b.outBuf); if(outs.length){ const g=outs[0];
+    gauge(x+CS-6,y+4,4,CS-8,(b.outBuf[g]||0)/CAP,ITEMS[g].c); }
+    const ins=Object.keys(b.inBuf); if(ins.length){ gauge(x+2,y+4,4,CS-8,(b.inBuf[ins[0]]||0)/CAP,"#d9a441"); } }
+  if(b.stalled){ctx.fillStyle="#e0554f";ctx.font=`bold ${CS*0.13}px sans-serif`;ctx.fillText("STALL",x+CS/2,y+CS*0.8);}
+}
+function drawGen(b){ const x=OX+b.x*CS,y=OY+b.y*CS; ctx.fillStyle=brownout?"#3a2422":"#c8b04a"; ctx.fillRect(x+2,y+2,CS-4,CS-4);
+  ctx.fillStyle="#0d1015";ctx.textAlign="center";ctx.font=`bold ${CS*0.3}px sans-serif`;ctx.fillText("⚡",x+CS/2,y+CS*0.55);
+  ctx.font=`${CS*0.14}px sans-serif`;ctx.fillText("tap",x+CS/2,y+CS*0.78); }
+function gauge(x,y,w,h,f,col){ f=Math.max(0,Math.min(1,f)); ctx.fillStyle="rgba(0,0,0,.35)";ctx.fillRect(x,y,w,h);
+  ctx.fillStyle=col;ctx.fillRect(x,y+h*(1-f),w,h*f); }
+
+// ---------------------------------------------------------------- ANALYZE
+function updateAnalyze(){ const el=document.getElementById("analyzeBody"); if(!document.getElementById("analyze").classList.contains("show"))return;
+  let h=""; for(const id in nodes){ const b=nodes[id]; if(b.type==="generator")continue;
+    let rate="",sub="";
+    if(b.type==="extractor"){ rate=Math.round(b.outBuf[b.good]>=CAP?0:b.rate)+"/m"; sub="out "+Math.round(b.outBuf[b.good])+"/"+CAP; }
+    else if(b.type==="terminal"){ rate=delivered.toFixed(0)+"/"+quota; sub=ITEMS[targetGood].n; }
+    else if(b.type==="splitter"){ rate="buf "+Math.round(b.buf||0); sub="1→"+outBeltCount(b); }
+    else{ const r=RECIPES[b.recipeId]; const og=r.out[0]; rate=Math.round(b.util*rpm(og[1],r.sec))+"/m "+Math.round(b.util*100)+"%";
+      sub="in "+Math.round(b.inBuf[r.in[0][0]])+" · out "+Math.round(b.outBuf[og[0]]); }
+    const nm=b.type==="fabricator"?RECIPES[b.recipeId].name:BUILD[b.type].label;
+    h+=`<div class="b">${nm} ${b.stalled?'<span style="color:#e0554f">STALL</span>':''}</div><div class="r"><span class="k">${rate}</span><span class="sub">${sub}</span></div>`;
+  }
+  h+=`<div class="b" style="margin-top:6px">Power</div><div class="r"><span class="k">${Math.round(battery)}/${CFG.batteryCap} kW</span><span class="sub">${brownout?'BROWNOUT':'ok'}</span></div>`;
+  el.innerHTML=h;
+}
+
+// ---------------------------------------------------------------- INPUT / UI
+let mode=null, placeType=null, beltFrom=null, pendingPlace=null;
+const hint=document.getElementById("hint");
+function setHint(t,cls){ hint.innerHTML=t; hint.className=cls||""; }
+function buildPalette(){ const P=document.getElementById("palette"); P.innerHTML="";
+  const items=[["extractor",true],["smelter",true],["fabricator",true],["splitter",tierUnlocked("splitter")],["generator",true],["belt",true],["analyze",true]];
+  for(const[t,en]of items){ const btn=document.createElement("button"); btn.className="tool"; btn.dataset.t=t;
+    if(t==="belt")btn.innerHTML="Belt<small>connect</small>"; else if(t==="analyze")btn.innerHTML="Analyze<small>rates</small>";
+    else btn.innerHTML=BUILD[t].label.replace(" ","<br>")+`<small>${BUILD[t].sub}</small>`;
+    btn.disabled=!en; btn.onclick=()=>selectTool(t,btn); P.appendChild(btn); } }
+function tierUnlocked(x){ return true; } // Act-1: all Tier-1/2 basics available for the slice
+function selectTool(t,btn){ document.querySelectorAll(".tool").forEach(b=>b.classList.remove("active"));
+  if(t==="analyze"){ const a=document.getElementById("analyze"); a.classList.toggle("show"); if(a.classList.contains("show"))btn.classList.add("active"); mode=null; placeType=null; beltFrom=null; return; }
+  btn.classList.add("active"); beltFrom=null;
+  if(t==="belt"){ mode="belt"; setHint("Belt: tap a <b>source</b> building's output, then a <b>destination</b>. Belts can't cross — they auto-route around."); }
+  else { mode="place"; placeType=t; setHint(`Tap a ${t==="extractor"?"faint ore deposit":"grid cell"} to place the ${BUILD[t].label}.`); } }
+c.addEventListener("pointerdown",e=>{ const r=c.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top;
+  const x=gx(px), y=gy(py); if(x<0||x>=GW||y<0||y>=GH)return;
+  const cc=cell[y][x];
+  if(mode==="place"){
+    if(placeType==="generator"&&cc&&cc.t==="bld"&&nodes[cc.id].type==="generator"){ pulseGen(nodes[cc.id]); return; }
+    if(!canPlace(placeType,x,y)){ setHint(placeType==="extractor"?"Extractors go on ore deposits (the faint ◆ circles).":"That cell is occupied.","warn"); return; }
+    if(placeType==="smelter"||placeType==="fabricator"){ askRecipe(placeType,x,y); return; }
+    const b=place(placeType,x,y); if(b)setHint(`${BUILD[placeType].label} placed.`,"ok");
+  } else if(mode==="belt"){
+    if(cc&&cc.t==="bld"){ const b=nodes[cc.id];
+      if(beltFrom==null){ beltFrom=cc.id; setHint(`From <b>${nodeName(b)}</b> — now tap the destination.`); }
+      else { const res=connect(beltFrom,cc.id); if(res.err){ setHint("⚠ "+res.err,"warn"); }
+        else { setHint("Belt connected.","ok"); } beltFrom=null; } }
+    else if(cc&&cc.t==="bld"===false){ setHint("Tap a building, not empty ground.","warn"); }
+  } else {
+    // tap generator to pulse even without tool
+    if(cc&&cc.t==="bld"&&nodes[cc.id].type==="generator")pulseGen(nodes[cc.id]);
+  }
+});
+function nodeName(b){ return b.type==="fabricator"?RECIPES[b.recipeId].name:BUILD[b.type].label; }
+function pulseGen(b){ battery=Math.min(CFG.batteryCap,battery+CFG.genPerClick); setHint("⚡ +"+CFG.genPerClick+" kW","ok"); }
+function askRecipe(type,x,y){ const list=Object.entries(RECIPES).filter(([id,r])=>r.b===type);
+  const box=document.getElementById("recipePick"), opts=document.getElementById("rpOpts");
+  document.getElementById("rpTitle").textContent=BUILD[type].label+" — choose recipe";
+  opts.innerHTML=""; for(const[id,r]of list){ const btn=document.createElement("button"); btn.className="opt";
+    const ins=r.in.map(([g,q])=>q+"× "+ITEMS[g].n).join(", "), outs=r.out.map(([g,q])=>q+"× "+ITEMS[g].n).join(", ");
+    btn.innerHTML=`<b>${r.name}</b><div class="rt">${ins} → ${outs} · ${r.sec}s → ${Math.round(rpm(r.out[0][1],r.sec))}/m</div>`;
+    btn.onclick=()=>{ box.classList.remove("show"); const b=place(type,x,y,id); if(b)setHint(`${r.name} ${BUILD[type].label} placed.`,"ok"); }; opts.appendChild(btn); }
+  box.classList.add("show"); }
+document.getElementById("rpCancel").onclick=()=>document.getElementById("recipePick").classList.remove("show");
+
+// ---------------------------------------------------------------- LOOP
+let acc=0, last=performance.now();
+function loop(now){ let dt=(now-last)/1000; last=now; if(dt>0.25)dt=0.25; acc+=dt;
+  while(acc>=CFG.dt){ tick(CFG.dt); acc-=CFG.dt; }
+  draw(); updateHeader(); updateAnalyze(); requestAnimationFrame(loop); }
+function tick(dt){ sim(dt);
+  // battery brownout flag
+  brownout=(!CFG.autoPower)&&battery<=0.001;
+  if(delivered>=quota&&quota>0){ quota=0; setHint("✅ Tier 1 quota met — Assembly Terminal satisfied. (Next tiers wire in from here.)","ok"); }
+}
+function updateHeader(){ document.getElementById("powerLbl").textContent="⚡ "+Math.round(battery)+(brownout?" · BROWNOUT":"");
+  document.getElementById("powerLbl").style.color=brownout?"#e0554f":(battery<CFG.batteryCap*0.2?"#e07a3f":"#e8ecf1"); }
+
+// ---------------------------------------------------------------- TEST API
+window.__game={ reset, CFG, ITEMS, RECIPES,
+  place:(t,x,y,r)=>{ const b=place(t,x,y,r); return b?b.id:null; },
+  connect:(a,b)=>connect(a,b),
+  tickN:(sec)=>{ const n=Math.round(sec/CFG.dt); for(let i=0;i<n;i++)tick(CFG.dt); },
+  node:id=>nodes[id],
+  state:()=>({delivered,quota,battery,brownout,
+    nodes:Object.fromEntries(Object.entries(nodes).map(([k,b])=>[k,{type:b.type,util:b.util,stalled:b.stalled,inBuf:b.inBuf,outBuf:b.outBuf,buf:b.buf,rate:b.rate}])),
+    belts:belts.map(be=>({src:be.src,dst:be.dst,good:be.good,flow:be.flow,len:be.path.length}))}),
+  deposits:()=>deposits.map(d=>({x:d.x,y:d.y,good:d.good,rich:d.rich})),
+  findDeposit:(good)=>{ const d=deposits.find(d=>d.good===good&&cell[d.y][d.x].t==="dep"); return d?{x:d.x,y:d.y}:null; },
+};
+
+// ---------------------------------------------------------------- BOOT
+reset(); buildPalette();
+window.addEventListener("resize",()=>{resize();}); resize();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,8135 @@
+{
+  "meta": {
+    "project": "Line Balance",
+    "description": "Re-skinned Satisfactory-derived production data. Names are original (grounded-industrial); ratios/timings preserve Satisfactory 1.0 exactly. Rates computed as qty*60/cycle_seconds.",
+    "rate_formula": "per_min = qty * 60 / cycle_seconds",
+    "counts": {
+      "buildings": 11,
+      "items": 116,
+      "recipes_total": 204,
+      "recipes_standard": 104,
+      "recipes_alternate": 100,
+      "raw_resources": 19,
+      "fluids": 16,
+      "mvp_items": 30
+    },
+    "notes": [
+      "Fluids ride belts as items in the current design (see preproduction plan).",
+      "Packager and packaged-fluid variants intentionally omitted from game data.",
+      "mvp=true marks the curated fluid-free MVP slice; mvp_act 1-3 is proposed order."
+    ]
+  },
+  "buildings": [
+    {
+      "id": "extractor",
+      "name": "Extractor",
+      "mvp": true,
+      "_satisfactory_ref": "Extractor"
+    },
+    {
+      "id": "smelting_furnace",
+      "name": "Smelting Furnace",
+      "mvp": true,
+      "_satisfactory_ref": "Smelter"
+    },
+    {
+      "id": "alloy_foundry",
+      "name": "Alloy Foundry",
+      "mvp": true,
+      "_satisfactory_ref": "Foundry"
+    },
+    {
+      "id": "fabricator",
+      "name": "Fabricator",
+      "mvp": true,
+      "_satisfactory_ref": "Constructor"
+    },
+    {
+      "id": "assembly_station",
+      "name": "Assembly Station",
+      "mvp": true,
+      "_satisfactory_ref": "Assembler"
+    },
+    {
+      "id": "manufactory",
+      "name": "Manufactory",
+      "mvp": true,
+      "_satisfactory_ref": "Manufacturer"
+    },
+    {
+      "id": "refining_column",
+      "name": "Refining Column",
+      "mvp": false,
+      "_satisfactory_ref": "Refinery"
+    },
+    {
+      "id": "mixer",
+      "name": "Mixer",
+      "mvp": false,
+      "_satisfactory_ref": "Blender"
+    },
+    {
+      "id": "accelerator",
+      "name": "Accelerator",
+      "mvp": false,
+      "_satisfactory_ref": "Particle Accelerator"
+    },
+    {
+      "id": "transmuter",
+      "name": "Transmuter",
+      "mvp": false,
+      "_satisfactory_ref": "Converter"
+    },
+    {
+      "id": "quantum_forge",
+      "name": "Quantum Forge",
+      "mvp": false,
+      "_satisfactory_ref": "Quantum Encoder"
+    }
+  ],
+  "items": [
+    {
+      "id": "ai_server",
+      "name": "AI Server",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 8,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "AI Expansion Server"
+    },
+    {
+      "id": "adaptive_controller",
+      "name": "Adaptive Controller",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 7,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Adaptive Control Unit"
+    },
+    {
+      "id": "air_filter",
+      "name": "Air Filter",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 3,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Gas Filter"
+    },
+    {
+      "id": "alumide_casing",
+      "name": "Alumide Casing",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 4,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Aluminum Casing"
+    },
+    {
+      "id": "alumide_ingot",
+      "name": "Alumide Ingot",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 3,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Aluminum Ingot"
+    },
+    {
+      "id": "alumide_scrap",
+      "name": "Alumide Scrap",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 2,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Aluminum Scrap"
+    },
+    {
+      "id": "alumide_slurry",
+      "name": "Alumide Slurry",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Alumina Solution"
+    },
+    {
+      "id": "anom_fluctuator",
+      "name": "Anom Fluctuator",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 3,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "SAM Fluctuator"
+    },
+    {
+      "id": "anom_power_matrix",
+      "name": "Anom Power Matrix",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 7,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Alien Power Matrix"
+    },
+    {
+      "id": "anomite_ore",
+      "name": "Anomite Ore",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "SAM"
+    },
+    {
+      "id": "auralite_ingot",
+      "name": "Auralite Ingot",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": true,
+      "mvp_act": 3,
+      "_satisfactory_ref": "Caterium Ingot"
+    },
+    {
+      "id": "auralite_ore",
+      "name": "Auralite Ore",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": true,
+      "mvp_act": null,
+      "_satisfactory_ref": "Caterium Ore"
+    },
+    {
+      "id": "azote_gas",
+      "name": "Azote Gas",
+      "is_raw": true,
+      "is_fluid": true,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Nitrogen Gas"
+    },
+    {
+      "id": "bio_diesel",
+      "name": "Bio-Diesel",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 3,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Liquid Biofuel"
+    },
+    {
+      "id": "bio_mass",
+      "name": "Bio-Mass",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Biomass"
+    },
+    {
+      "id": "bio_pellet",
+      "name": "Bio-Pellet",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Solid Biofuel"
+    },
+    {
+      "id": "biochem_sculptor",
+      "name": "Biochem Sculptor",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 9,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Biochemical Sculptor"
+    },
+    {
+      "id": "bolts",
+      "name": "Bolts",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 3,
+      "mvp": true,
+      "mvp_act": 1,
+      "_satisfactory_ref": "Screws"
+    },
+    {
+      "id": "boosted_fuel",
+      "name": "Boosted Fuel",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 2,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Turbofuel"
+    },
+    {
+      "id": "braced_frame",
+      "name": "Braced Frame",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 5,
+      "mvp": true,
+      "mvp_act": 3,
+      "_satisfactory_ref": "Modular Frame"
+    },
+    {
+      "id": "braced_plate",
+      "name": "Braced Plate",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 4,
+      "mvp": true,
+      "mvp_act": 2,
+      "_satisfactory_ref": "Reinforced Iron Plate"
+    },
+    {
+      "id": "braided_cable",
+      "name": "Braided Cable",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 3,
+      "mvp": true,
+      "mvp_act": 1,
+      "_satisfactory_ref": "Cable"
+    },
+    {
+      "id": "brimstone",
+      "name": "Brimstone",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Sulfur"
+    },
+    {
+      "id": "cased_plutone_cell",
+      "name": "Cased Plutone Cell",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 6,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Encased Plutonium Cell"
+    },
+    {
+      "id": "cased_radite_cell",
+      "name": "Cased Radite Cell",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Encased Uranium Cell"
+    },
+    {
+      "id": "castcrete",
+      "name": "Castcrete",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": true,
+      "mvp_act": 1,
+      "_satisfactory_ref": "Concrete"
+    },
+    {
+      "id": "chalkstone",
+      "name": "Chalkstone",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": true,
+      "mvp_act": null,
+      "_satisfactory_ref": "Limestone"
+    },
+    {
+      "id": "charged_fuel",
+      "name": "Charged Fuel",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 5,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Ionized Fuel"
+    },
+    {
+      "id": "chrono_crystal",
+      "name": "Chrono Crystal",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Time Crystal"
+    },
+    {
+      "id": "cinder_coal",
+      "name": "Cinder Coal",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": true,
+      "mvp_act": null,
+      "_satisfactory_ref": "Coal"
+    },
+    {
+      "id": "circuit_panel",
+      "name": "Circuit Panel",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 3,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Circuit Board"
+    },
+    {
+      "id": "clad_alumide_sheet",
+      "name": "Clad Alumide Sheet",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 4,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Alclad Aluminum Sheet"
+    },
+    {
+      "id": "claystone",
+      "name": "Claystone",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Bauxite"
+    },
+    {
+      "id": "compute_module",
+      "name": "Compute Module",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 4,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Computer"
+    },
+    {
+      "id": "coolant_unit",
+      "name": "Coolant Unit",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 6,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Cooling System"
+    },
+    {
+      "id": "coreite_ingot",
+      "name": "Coreite Ingot",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Ficsite Ingot"
+    },
+    {
+      "id": "coreite_trigon",
+      "name": "Coreite Trigon",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 3,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Ficsite Trigon"
+    },
+    {
+      "id": "coronium",
+      "name": "Coronium",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 11,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Ficsonium"
+    },
+    {
+      "id": "coronium_fuel_rod",
+      "name": "Coronium Fuel Rod",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 12,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Ficsonium Fuel Rod"
+    },
+    {
+      "id": "crude_petrol",
+      "name": "Crude Petrol",
+      "is_raw": true,
+      "is_fluid": true,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Crude Oil"
+    },
+    {
+      "id": "cuprite_ingot",
+      "name": "Cuprite Ingot",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": true,
+      "mvp_act": 1,
+      "_satisfactory_ref": "Copper Ingot"
+    },
+    {
+      "id": "cuprite_ore",
+      "name": "Cuprite Ore",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": true,
+      "mvp_act": null,
+      "_satisfactory_ref": "Copper Ore"
+    },
+    {
+      "id": "cuprite_powder",
+      "name": "Cuprite Powder",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Copper Powder"
+    },
+    {
+      "id": "cuprite_sheet",
+      "name": "Cuprite Sheet",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": true,
+      "mvp_act": 1,
+      "_satisfactory_ref": "Copper Sheet"
+    },
+    {
+      "id": "data_connector",
+      "name": "Data Connector",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 4,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "High-Speed Connector"
+    },
+    {
+      "id": "depleted_plutone",
+      "name": "Depleted Plutone",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Plutonium Waste"
+    },
+    {
+      "id": "depleted_radite",
+      "name": "Depleted Radite",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Uranium Waste"
+    },
+    {
+      "id": "director_system",
+      "name": "Director System",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 8,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Assembly Director System"
+    },
+    {
+      "id": "drive_engine",
+      "name": "Drive Engine",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 6,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Modular Engine"
+    },
+    {
+      "id": "drive_motor",
+      "name": "Drive Motor",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 5,
+      "mvp": true,
+      "mvp_act": 2,
+      "_satisfactory_ref": "Motor"
+    },
+    {
+      "id": "em_control_rod",
+      "name": "EM Control Rod",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 4,
+      "mvp": true,
+      "mvp_act": 3,
+      "_satisfactory_ref": "Electromagnetic Control Rod"
+    },
+    {
+      "id": "encased_girder",
+      "name": "Encased Girder",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 3,
+      "mvp": true,
+      "mvp_act": 2,
+      "_satisfactory_ref": "Encased Industrial Beam"
+    },
+    {
+      "id": "ferrite_ingot",
+      "name": "Ferrite Ingot",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": true,
+      "mvp_act": 1,
+      "_satisfactory_ref": "Iron Ingot"
+    },
+    {
+      "id": "ferrite_ore",
+      "name": "Ferrite Ore",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": true,
+      "mvp_act": null,
+      "_satisfactory_ref": "Iron Ore"
+    },
+    {
+      "id": "ferrite_plate",
+      "name": "Ferrite Plate",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": true,
+      "mvp_act": 1,
+      "_satisfactory_ref": "Iron Plate"
+    },
+    {
+      "id": "ferrite_rod",
+      "name": "Ferrite Rod",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": true,
+      "mvp_act": 1,
+      "_satisfactory_ref": "Iron Rod"
+    },
+    {
+      "id": "fiber_weave",
+      "name": "Fiber Weave",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Fabric"
+    },
+    {
+      "id": "field_generator",
+      "name": "Field Generator",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 7,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Magnetic Field Generator"
+    },
+    {
+      "id": "field_stator",
+      "name": "Field Stator",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 3,
+      "mvp": true,
+      "mvp_act": 2,
+      "_satisfactory_ref": "Stator"
+    },
+    {
+      "id": "filament",
+      "name": "Filament",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": true,
+      "mvp_act": 1,
+      "_satisfactory_ref": "Wire"
+    },
+    {
+      "id": "fluid_canister",
+      "name": "Fluid Canister",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Empty Canister"
+    },
+    {
+      "id": "fluid_tank",
+      "name": "Fluid Tank",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 4,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Empty Fluid Tank"
+    },
+    {
+      "id": "foliage",
+      "name": "Foliage",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Leaves"
+    },
+    {
+      "id": "fused_frame",
+      "name": "Fused Frame",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 7,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Fused Modular Frame"
+    },
+    {
+      "id": "heavy_oil_sludge",
+      "name": "Heavy Oil Sludge",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Heavy Oil Residue"
+    },
+    {
+      "id": "iodine_filter",
+      "name": "Iodine Filter",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 5,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Iodine-Infused Filter"
+    },
+    {
+      "id": "logic_limiter",
+      "name": "Logic Limiter",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 3,
+      "mvp": true,
+      "mvp_act": 3,
+      "_satisfactory_ref": "AI Limiter"
+    },
+    {
+      "id": "mainframe_module",
+      "name": "Mainframe Module",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 5,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Supercomputer"
+    },
+    {
+      "id": "neural_processor",
+      "name": "Neural Processor",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 6,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Neural-Quantum Processor"
+    },
+    {
+      "id": "nitro_acid",
+      "name": "Nitro Acid",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 3,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Nitric Acid"
+    },
+    {
+      "id": "petro_coke",
+      "name": "Petro Coke",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Petroleum Coke"
+    },
+    {
+      "id": "photon_flux",
+      "name": "Photon Flux",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Excited Photonic Matter"
+    },
+    {
+      "id": "plutone_fuel_rod",
+      "name": "Plutone Fuel Rod",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 7,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Plutonium Fuel Rod"
+    },
+    {
+      "id": "plutone_pellet",
+      "name": "Plutone Pellet",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 5,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Plutonium Pellet"
+    },
+    {
+      "id": "power_cell",
+      "name": "Power Cell",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 5,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Battery"
+    },
+    {
+      "id": "pressed_coal",
+      "name": "Pressed Coal",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Compacted Coal"
+    },
+    {
+      "id": "pressure_cube",
+      "name": "Pressure Cube",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 8,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Pressure Conversion Cube"
+    },
+    {
+      "id": "prism_crystal",
+      "name": "Prism Crystal",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Quartz Crystal"
+    },
+    {
+      "id": "quantum_oscillator",
+      "name": "Quantum Oscillator",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 6,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Superposition Oscillator"
+    },
+    {
+      "id": "quantum_pasta",
+      "name": "Quantum Pasta",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 9,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Nuclear Pasta"
+    },
+    {
+      "id": "quartz_oscillator",
+      "name": "Quartz Oscillator",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 5,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Crystal Oscillator"
+    },
+    {
+      "id": "quartzite_ore",
+      "name": "Quartzite Ore",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Raw Quartz"
+    },
+    {
+      "id": "radite_fuel_rod",
+      "name": "Radite Fuel Rod",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 5,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Uranium Fuel Rod"
+    },
+    {
+      "id": "radite_ore",
+      "name": "Radite Ore",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Uranium"
+    },
+    {
+      "id": "rapidwire",
+      "name": "Rapidwire",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": true,
+      "mvp_act": 3,
+      "_satisfactory_ref": "Quickwire"
+    },
+    {
+      "id": "raw_resin",
+      "name": "Raw Resin",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Polymer Resin"
+    },
+    {
+      "id": "reactivated_anomite",
+      "name": "Reactivated Anomite",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Reanimated SAM"
+    },
+    {
+      "id": "refined_fuel",
+      "name": "Refined Fuel",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Fuel"
+    },
+    {
+      "id": "reinforced_frame",
+      "name": "Reinforced Frame",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 6,
+      "mvp": true,
+      "mvp_act": 3,
+      "_satisfactory_ref": "Heavy Modular Frame"
+    },
+    {
+      "id": "signal_control_unit",
+      "name": "Signal Control Unit",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 6,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Radio Control Unit"
+    },
+    {
+      "id": "silica_solution",
+      "name": "Silica Solution",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 4,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Dissolved Silica"
+    },
+    {
+      "id": "silicate_grit",
+      "name": "Silicate Grit",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Silica"
+    },
+    {
+      "id": "smart_panel",
+      "name": "Smart Panel",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 5,
+      "mvp": true,
+      "mvp_act": 3,
+      "_satisfactory_ref": "Smart Plating"
+    },
+    {
+      "id": "sporeflesh",
+      "name": "Sporeflesh",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Mycelia"
+    },
+    {
+      "id": "stable_radite",
+      "name": "Stable Radite",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 4,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Non-Fissile Uranium"
+    },
+    {
+      "id": "steel_billet",
+      "name": "Steel Billet",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": true,
+      "mvp_act": 2,
+      "_satisfactory_ref": "Steel Ingot"
+    },
+    {
+      "id": "steel_girder",
+      "name": "Steel Girder",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": true,
+      "mvp_act": 2,
+      "_satisfactory_ref": "Steel Beam"
+    },
+    {
+      "id": "steel_tube",
+      "name": "Steel Tube",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 2,
+      "mvp": true,
+      "mvp_act": 2,
+      "_satisfactory_ref": "Steel Pipe"
+    },
+    {
+      "id": "sulfur_acid",
+      "name": "Sulfur Acid",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Sulfuric Acid"
+    },
+    {
+      "id": "surge_shard",
+      "name": "Surge Shard",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Power Shard"
+    },
+    {
+      "id": "synth_diamond",
+      "name": "Synth Diamond",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Diamonds"
+    },
+    {
+      "id": "synthplast",
+      "name": "Synthplast",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Plastic"
+    },
+    {
+      "id": "synthrubber",
+      "name": "Synthrubber",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 1,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Rubber"
+    },
+    {
+      "id": "thermal_rocket",
+      "name": "Thermal Rocket",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 8,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Thermal Propulsion Rocket"
+    },
+    {
+      "id": "thermal_sink",
+      "name": "Thermal Sink",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 5,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Heat Sink"
+    },
+    {
+      "id": "thruster_fuel",
+      "name": "Thruster Fuel",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 4,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Rocket Fuel"
+    },
+    {
+      "id": "timber",
+      "name": "Timber",
+      "is_raw": true,
+      "is_fluid": false,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Wood"
+    },
+    {
+      "id": "turbo_drive",
+      "name": "Turbo Drive",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 7,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Turbo Motor"
+    },
+    {
+      "id": "turn_rotor",
+      "name": "Turn Rotor",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 4,
+      "mvp": true,
+      "mvp_act": 2,
+      "_satisfactory_ref": "Rotor"
+    },
+    {
+      "id": "utility_frame",
+      "name": "Utility Frame",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 6,
+      "mvp": true,
+      "mvp_act": 3,
+      "_satisfactory_ref": "Versatile Framework"
+    },
+    {
+      "id": "void_cell",
+      "name": "Void Cell",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 10,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Singularity Cell"
+    },
+    {
+      "id": "void_crystal",
+      "name": "Void Crystal",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 3,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Dark Matter Crystal"
+    },
+    {
+      "id": "void_residue",
+      "name": "Void Residue",
+      "is_raw": false,
+      "is_fluid": true,
+      "complexity_tier": 2,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Dark Matter Residue"
+    },
+    {
+      "id": "warp_drive",
+      "name": "Warp Drive",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 11,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Ballistic Warp Drive"
+    },
+    {
+      "id": "water",
+      "name": "Water",
+      "is_raw": true,
+      "is_fluid": true,
+      "complexity_tier": 0,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Water"
+    },
+    {
+      "id": "wired_harness",
+      "name": "Wired Harness",
+      "is_raw": false,
+      "is_fluid": false,
+      "complexity_tier": 4,
+      "mvp": false,
+      "mvp_act": null,
+      "_satisfactory_ref": "Automated Wiring"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "ferrite_ingot",
+      "name": "Ferrite Ingot",
+      "building": "smelting_furnace",
+      "building_name": "Smelting Furnace",
+      "alternate": false,
+      "primary_output": "ferrite_ingot",
+      "cycle_seconds": 2,
+      "inputs": [
+        {
+          "item": "ferrite_ore",
+          "name": "Ferrite Ore",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "cuprite_ingot",
+      "name": "Cuprite Ingot",
+      "building": "smelting_furnace",
+      "building_name": "Smelting Furnace",
+      "alternate": false,
+      "primary_output": "cuprite_ingot",
+      "cycle_seconds": 2,
+      "inputs": [
+        {
+          "item": "cuprite_ore",
+          "name": "Cuprite Ore",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "auralite_ingot",
+      "name": "Auralite Ingot",
+      "building": "smelting_furnace",
+      "building_name": "Smelting Furnace",
+      "alternate": false,
+      "primary_output": "auralite_ingot",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "auralite_ore",
+          "name": "Auralite Ore",
+          "qty": 3,
+          "per_min": 45.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "auralite_ingot",
+          "name": "Auralite Ingot",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "steel_billet",
+      "name": "Steel Billet",
+      "building": "alloy_foundry",
+      "building_name": "Alloy Foundry",
+      "alternate": false,
+      "primary_output": "steel_billet",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "ferrite_ore",
+          "name": "Ferrite Ore",
+          "qty": 3,
+          "per_min": 45.0
+        },
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 3,
+          "per_min": 45.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "steel_billet",
+          "name": "Steel Billet",
+          "qty": 3,
+          "per_min": 45.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "alumide_ingot",
+      "name": "Alumide Ingot",
+      "building": "alloy_foundry",
+      "building_name": "Alloy Foundry",
+      "alternate": false,
+      "primary_output": "alumide_ingot",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "alumide_scrap",
+          "name": "Alumide Scrap",
+          "qty": 6,
+          "per_min": 90.0
+        },
+        {
+          "item": "silicate_grit",
+          "name": "Silicate Grit",
+          "qty": 5,
+          "per_min": 75.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "alumide_ingot",
+          "name": "Alumide Ingot",
+          "qty": 4,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "ferrite_plate",
+      "name": "Ferrite Plate",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "ferrite_plate",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "ferrite_plate",
+          "name": "Ferrite Plate",
+          "qty": 2,
+          "per_min": 20.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "ferrite_rod",
+      "name": "Ferrite Rod",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "ferrite_rod",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "ferrite_rod",
+          "name": "Ferrite Rod",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "bolts",
+      "name": "Bolts",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "bolts",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "ferrite_rod",
+          "name": "Ferrite Rod",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "bolts",
+          "name": "Bolts",
+          "qty": 4,
+          "per_min": 40.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "filament",
+      "name": "Filament",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "filament",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 2,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "braided_cable",
+      "name": "Braided Cable",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "braided_cable",
+      "cycle_seconds": 2,
+      "inputs": [
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 2,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "braided_cable",
+          "name": "Braided Cable",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "cuprite_sheet",
+      "name": "Cuprite Sheet",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "cuprite_sheet",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 2,
+          "per_min": 20.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cuprite_sheet",
+          "name": "Cuprite Sheet",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "castcrete",
+      "name": "Castcrete",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "castcrete",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "chalkstone",
+          "name": "Chalkstone",
+          "qty": 3,
+          "per_min": 45.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "prism_crystal",
+      "name": "Prism Crystal",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "prism_crystal",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "quartzite_ore",
+          "name": "Quartzite Ore",
+          "qty": 5,
+          "per_min": 37.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "prism_crystal",
+          "name": "Prism Crystal",
+          "qty": 3,
+          "per_min": 22.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "silicate_grit",
+      "name": "Silicate Grit",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "silicate_grit",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "quartzite_ore",
+          "name": "Quartzite Ore",
+          "qty": 3,
+          "per_min": 22.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "silicate_grit",
+          "name": "Silicate Grit",
+          "qty": 5,
+          "per_min": 37.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "rapidwire",
+      "name": "Rapidwire",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "rapidwire",
+      "cycle_seconds": 5,
+      "inputs": [
+        {
+          "item": "auralite_ingot",
+          "name": "Auralite Ingot",
+          "qty": 1,
+          "per_min": 12.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 5,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "steel_girder",
+      "name": "Steel Girder",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "steel_girder",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "steel_billet",
+          "name": "Steel Billet",
+          "qty": 4,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "steel_girder",
+          "name": "Steel Girder",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "steel_tube",
+      "name": "Steel Tube",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "steel_tube",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "steel_billet",
+          "name": "Steel Billet",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "steel_tube",
+          "name": "Steel Tube",
+          "qty": 2,
+          "per_min": 20.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "alumide_casing",
+      "name": "Alumide Casing",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "alumide_casing",
+      "cycle_seconds": 2,
+      "inputs": [
+        {
+          "item": "alumide_ingot",
+          "name": "Alumide Ingot",
+          "qty": 3,
+          "per_min": 90.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "alumide_casing",
+          "name": "Alumide Casing",
+          "qty": 2,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "cuprite_powder",
+      "name": "Cuprite Powder",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "cuprite_powder",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 30,
+          "per_min": 300.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cuprite_powder",
+          "name": "Cuprite Powder",
+          "qty": 5,
+          "per_min": 50.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fluid_canister",
+      "name": "Fluid Canister",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "fluid_canister",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 2,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "fluid_canister",
+          "name": "Fluid Canister",
+          "qty": 4,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fluid_tank",
+      "name": "Fluid Tank",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "fluid_tank",
+      "cycle_seconds": 1,
+      "inputs": [
+        {
+          "item": "alumide_ingot",
+          "name": "Alumide Ingot",
+          "qty": 1,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "fluid_tank",
+          "name": "Fluid Tank",
+          "qty": 1,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "bio_mass_timber",
+      "name": "Bio-Mass (Timber)",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "bio_mass",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "timber",
+          "name": "Timber",
+          "qty": 4,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "bio_mass",
+          "name": "Bio-Mass",
+          "qty": 20,
+          "per_min": 300.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "bio_mass_foliage",
+      "name": "Bio-Mass (Foliage)",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "bio_mass",
+      "cycle_seconds": 5,
+      "inputs": [
+        {
+          "item": "foliage",
+          "name": "Foliage",
+          "qty": 10,
+          "per_min": 120.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "bio_mass",
+          "name": "Bio-Mass",
+          "qty": 5,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "bio_mass_sporeflesh",
+      "name": "Bio-Mass (Sporeflesh)",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "bio_mass",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "sporeflesh",
+          "name": "Sporeflesh",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "bio_mass",
+          "name": "Bio-Mass",
+          "qty": 10,
+          "per_min": 150.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "bio_pellet",
+      "name": "Bio-Pellet",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "bio_pellet",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "bio_mass",
+          "name": "Bio-Mass",
+          "qty": 8,
+          "per_min": 120.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "bio_pellet",
+          "name": "Bio-Pellet",
+          "qty": 4,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "bio_coal",
+      "name": "Bio-Coal",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "cinder_coal",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "bio_mass",
+          "name": "Bio-Mass",
+          "qty": 5,
+          "per_min": 37.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 6,
+          "per_min": 45.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "charcoal",
+      "name": "Charcoal",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "cinder_coal",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "timber",
+          "name": "Timber",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 10,
+          "per_min": 150.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "reactivated_anomite",
+      "name": "Reactivated Anomite",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "reactivated_anomite",
+      "cycle_seconds": 2,
+      "inputs": [
+        {
+          "item": "anomite_ore",
+          "name": "Anomite Ore",
+          "qty": 4,
+          "per_min": 120.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "reactivated_anomite",
+          "name": "Reactivated Anomite",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "coreite_trigon",
+      "name": "Coreite Trigon",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": false,
+      "primary_output": "coreite_trigon",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "coreite_ingot",
+          "name": "Coreite Ingot",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "coreite_trigon",
+          "name": "Coreite Trigon",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "braced_plate",
+      "name": "Braced Plate",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "braced_plate",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "ferrite_plate",
+          "name": "Ferrite Plate",
+          "qty": 6,
+          "per_min": 30.0
+        },
+        {
+          "item": "bolts",
+          "name": "Bolts",
+          "qty": 12,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "braced_plate",
+          "name": "Braced Plate",
+          "qty": 1,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "turn_rotor",
+      "name": "Turn Rotor",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "turn_rotor",
+      "cycle_seconds": 15,
+      "inputs": [
+        {
+          "item": "ferrite_rod",
+          "name": "Ferrite Rod",
+          "qty": 5,
+          "per_min": 20.0
+        },
+        {
+          "item": "bolts",
+          "name": "Bolts",
+          "qty": 25,
+          "per_min": 100.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "turn_rotor",
+          "name": "Turn Rotor",
+          "qty": 1,
+          "per_min": 4.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "braced_frame",
+      "name": "Braced Frame",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "braced_frame",
+      "cycle_seconds": 60,
+      "inputs": [
+        {
+          "item": "braced_plate",
+          "name": "Braced Plate",
+          "qty": 3,
+          "per_min": 3.0
+        },
+        {
+          "item": "ferrite_rod",
+          "name": "Ferrite Rod",
+          "qty": 12,
+          "per_min": 12.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "braced_frame",
+          "name": "Braced Frame",
+          "qty": 2,
+          "per_min": 2.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "field_stator",
+      "name": "Field Stator",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "field_stator",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "steel_tube",
+          "name": "Steel Tube",
+          "qty": 3,
+          "per_min": 15.0
+        },
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 8,
+          "per_min": 40.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "field_stator",
+          "name": "Field Stator",
+          "qty": 1,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "drive_motor",
+      "name": "Drive Motor",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "drive_motor",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "turn_rotor",
+          "name": "Turn Rotor",
+          "qty": 2,
+          "per_min": 10.0
+        },
+        {
+          "item": "field_stator",
+          "name": "Field Stator",
+          "qty": 2,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "drive_motor",
+          "name": "Drive Motor",
+          "qty": 1,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "circuit_panel",
+      "name": "Circuit Panel",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "circuit_panel",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "cuprite_sheet",
+          "name": "Cuprite Sheet",
+          "qty": 2,
+          "per_min": 15.0
+        },
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 4,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "circuit_panel",
+          "name": "Circuit Panel",
+          "qty": 1,
+          "per_min": 7.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "logic_limiter",
+      "name": "Logic Limiter",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "logic_limiter",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "cuprite_sheet",
+          "name": "Cuprite Sheet",
+          "qty": 5,
+          "per_min": 25.0
+        },
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 20,
+          "per_min": 100.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "logic_limiter",
+          "name": "Logic Limiter",
+          "qty": 1,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "clad_alumide_sheet",
+      "name": "Clad Alumide Sheet",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "clad_alumide_sheet",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "alumide_ingot",
+          "name": "Alumide Ingot",
+          "qty": 3,
+          "per_min": 30.0
+        },
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "clad_alumide_sheet",
+          "name": "Clad Alumide Sheet",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "wired_harness",
+      "name": "Wired Harness",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "wired_harness",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "field_stator",
+          "name": "Field Stator",
+          "qty": 1,
+          "per_min": 2.5
+        },
+        {
+          "item": "braided_cable",
+          "name": "Braided Cable",
+          "qty": 20,
+          "per_min": 50.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "wired_harness",
+          "name": "Wired Harness",
+          "qty": 1,
+          "per_min": 2.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "encased_girder",
+      "name": "Encased Girder",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "encased_girder",
+      "cycle_seconds": 10,
+      "inputs": [
+        {
+          "item": "steel_girder",
+          "name": "Steel Girder",
+          "qty": 3,
+          "per_min": 18.0
+        },
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 6,
+          "per_min": 36.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "encased_girder",
+          "name": "Encased Girder",
+          "qty": 1,
+          "per_min": 6.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "em_control_rod",
+      "name": "EM Control Rod",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "em_control_rod",
+      "cycle_seconds": 30,
+      "inputs": [
+        {
+          "item": "field_stator",
+          "name": "Field Stator",
+          "qty": 3,
+          "per_min": 6.0
+        },
+        {
+          "item": "logic_limiter",
+          "name": "Logic Limiter",
+          "qty": 2,
+          "per_min": 4.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "em_control_rod",
+          "name": "EM Control Rod",
+          "qty": 2,
+          "per_min": 4.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "thermal_sink",
+      "name": "Thermal Sink",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "thermal_sink",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "clad_alumide_sheet",
+          "name": "Clad Alumide Sheet",
+          "qty": 5,
+          "per_min": 37.5
+        },
+        {
+          "item": "cuprite_sheet",
+          "name": "Cuprite Sheet",
+          "qty": 3,
+          "per_min": 22.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "thermal_sink",
+          "name": "Thermal Sink",
+          "qty": 1,
+          "per_min": 7.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "smart_panel",
+      "name": "Smart Panel",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "smart_panel",
+      "cycle_seconds": 30,
+      "inputs": [
+        {
+          "item": "braced_plate",
+          "name": "Braced Plate",
+          "qty": 1,
+          "per_min": 2.0
+        },
+        {
+          "item": "turn_rotor",
+          "name": "Turn Rotor",
+          "qty": 1,
+          "per_min": 2.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "smart_panel",
+          "name": "Smart Panel",
+          "qty": 1,
+          "per_min": 2.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "utility_frame",
+      "name": "Utility Frame",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "utility_frame",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "braced_frame",
+          "name": "Braced Frame",
+          "qty": 1,
+          "per_min": 2.5
+        },
+        {
+          "item": "steel_girder",
+          "name": "Steel Girder",
+          "qty": 12,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "utility_frame",
+          "name": "Utility Frame",
+          "qty": 2,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "field_generator",
+      "name": "Field Generator",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "field_generator",
+      "cycle_seconds": 120,
+      "inputs": [
+        {
+          "item": "utility_frame",
+          "name": "Utility Frame",
+          "qty": 5,
+          "per_min": 2.5
+        },
+        {
+          "item": "em_control_rod",
+          "name": "EM Control Rod",
+          "qty": 2,
+          "per_min": 1.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "field_generator",
+          "name": "Field Generator",
+          "qty": 2,
+          "per_min": 1.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "pressure_cube",
+      "name": "Pressure Cube",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "pressure_cube",
+      "cycle_seconds": 60,
+      "inputs": [
+        {
+          "item": "fused_frame",
+          "name": "Fused Frame",
+          "qty": 1,
+          "per_min": 1.0
+        },
+        {
+          "item": "signal_control_unit",
+          "name": "Signal Control Unit",
+          "qty": 2,
+          "per_min": 2.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "pressure_cube",
+          "name": "Pressure Cube",
+          "qty": 1,
+          "per_min": 1.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "director_system",
+      "name": "Director System",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "director_system",
+      "cycle_seconds": 80,
+      "inputs": [
+        {
+          "item": "adaptive_controller",
+          "name": "Adaptive Controller",
+          "qty": 2,
+          "per_min": 1.5
+        },
+        {
+          "item": "mainframe_module",
+          "name": "Mainframe Module",
+          "qty": 1,
+          "per_min": 0.75
+        }
+      ],
+      "outputs": [
+        {
+          "item": "director_system",
+          "name": "Director System",
+          "qty": 1,
+          "per_min": 0.75
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fiber_weave",
+      "name": "Fiber Weave",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "fiber_weave",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "sporeflesh",
+          "name": "Sporeflesh",
+          "qty": 1,
+          "per_min": 15.0
+        },
+        {
+          "item": "bio_mass",
+          "name": "Bio-Mass",
+          "qty": 5,
+          "per_min": 75.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "fiber_weave",
+          "name": "Fiber Weave",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "pressed_coal",
+      "name": "Pressed Coal",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "pressed_coal",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 5,
+          "per_min": 25.0
+        },
+        {
+          "item": "brimstone",
+          "name": "Brimstone",
+          "qty": 5,
+          "per_min": 25.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "pressed_coal",
+          "name": "Pressed Coal",
+          "qty": 5,
+          "per_min": 25.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "cased_plutone_cell",
+      "name": "Cased Plutone Cell",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": false,
+      "primary_output": "cased_plutone_cell",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "plutone_pellet",
+          "name": "Plutone Pellet",
+          "qty": 2,
+          "per_min": 10.0
+        },
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 4,
+          "per_min": 20.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cased_plutone_cell",
+          "name": "Cased Plutone Cell",
+          "qty": 1,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "compute_module",
+      "name": "Compute Module",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "compute_module",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "circuit_panel",
+          "name": "Circuit Panel",
+          "qty": 4,
+          "per_min": 10.0
+        },
+        {
+          "item": "braided_cable",
+          "name": "Braided Cable",
+          "qty": 8,
+          "per_min": 20.0
+        },
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 16,
+          "per_min": 40.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "compute_module",
+          "name": "Compute Module",
+          "qty": 1,
+          "per_min": 2.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "reinforced_frame",
+      "name": "Reinforced Frame",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "reinforced_frame",
+      "cycle_seconds": 30,
+      "inputs": [
+        {
+          "item": "braced_frame",
+          "name": "Braced Frame",
+          "qty": 5,
+          "per_min": 10.0
+        },
+        {
+          "item": "steel_tube",
+          "name": "Steel Tube",
+          "qty": 20,
+          "per_min": 40.0
+        },
+        {
+          "item": "encased_girder",
+          "name": "Encased Girder",
+          "qty": 5,
+          "per_min": 10.0
+        },
+        {
+          "item": "bolts",
+          "name": "Bolts",
+          "qty": 120,
+          "per_min": 240.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "reinforced_frame",
+          "name": "Reinforced Frame",
+          "qty": 1,
+          "per_min": 2.0
+        }
+      ],
+      "mvp": true
+    },
+    {
+      "id": "quartz_oscillator",
+      "name": "Quartz Oscillator",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "quartz_oscillator",
+      "cycle_seconds": 120,
+      "inputs": [
+        {
+          "item": "prism_crystal",
+          "name": "Prism Crystal",
+          "qty": 36,
+          "per_min": 18.0
+        },
+        {
+          "item": "braided_cable",
+          "name": "Braided Cable",
+          "qty": 28,
+          "per_min": 14.0
+        },
+        {
+          "item": "braced_plate",
+          "name": "Braced Plate",
+          "qty": 5,
+          "per_min": 2.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "quartz_oscillator",
+          "name": "Quartz Oscillator",
+          "qty": 2,
+          "per_min": 1.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "data_connector",
+      "name": "Data Connector",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "data_connector",
+      "cycle_seconds": 16,
+      "inputs": [
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 56,
+          "per_min": 210.0
+        },
+        {
+          "item": "braided_cable",
+          "name": "Braided Cable",
+          "qty": 10,
+          "per_min": 37.5
+        },
+        {
+          "item": "circuit_panel",
+          "name": "Circuit Panel",
+          "qty": 1,
+          "per_min": 3.75
+        }
+      ],
+      "outputs": [
+        {
+          "item": "data_connector",
+          "name": "Data Connector",
+          "qty": 1,
+          "per_min": 3.75
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "mainframe_module",
+      "name": "Mainframe Module",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "mainframe_module",
+      "cycle_seconds": 32,
+      "inputs": [
+        {
+          "item": "compute_module",
+          "name": "Compute Module",
+          "qty": 4,
+          "per_min": 7.5
+        },
+        {
+          "item": "logic_limiter",
+          "name": "Logic Limiter",
+          "qty": 2,
+          "per_min": 3.75
+        },
+        {
+          "item": "data_connector",
+          "name": "Data Connector",
+          "qty": 3,
+          "per_min": 5.625
+        },
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 28,
+          "per_min": 52.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "mainframe_module",
+          "name": "Mainframe Module",
+          "qty": 1,
+          "per_min": 1.875
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "signal_control_unit",
+      "name": "Signal Control Unit",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "signal_control_unit",
+      "cycle_seconds": 48,
+      "inputs": [
+        {
+          "item": "alumide_casing",
+          "name": "Alumide Casing",
+          "qty": 32,
+          "per_min": 40.0
+        },
+        {
+          "item": "quartz_oscillator",
+          "name": "Quartz Oscillator",
+          "qty": 1,
+          "per_min": 1.25
+        },
+        {
+          "item": "compute_module",
+          "name": "Compute Module",
+          "qty": 2,
+          "per_min": 2.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "signal_control_unit",
+          "name": "Signal Control Unit",
+          "qty": 2,
+          "per_min": 2.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "drive_engine",
+      "name": "Drive Engine",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "drive_engine",
+      "cycle_seconds": 60,
+      "inputs": [
+        {
+          "item": "drive_motor",
+          "name": "Drive Motor",
+          "qty": 2,
+          "per_min": 2.0
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 15,
+          "per_min": 15.0
+        },
+        {
+          "item": "smart_panel",
+          "name": "Smart Panel",
+          "qty": 2,
+          "per_min": 2.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "drive_engine",
+          "name": "Drive Engine",
+          "qty": 1,
+          "per_min": 1.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "adaptive_controller",
+      "name": "Adaptive Controller",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "adaptive_controller",
+      "cycle_seconds": 60,
+      "inputs": [
+        {
+          "item": "wired_harness",
+          "name": "Wired Harness",
+          "qty": 5,
+          "per_min": 5.0
+        },
+        {
+          "item": "circuit_panel",
+          "name": "Circuit Panel",
+          "qty": 5,
+          "per_min": 5.0
+        },
+        {
+          "item": "reinforced_frame",
+          "name": "Reinforced Frame",
+          "qty": 1,
+          "per_min": 1.0
+        },
+        {
+          "item": "compute_module",
+          "name": "Compute Module",
+          "qty": 2,
+          "per_min": 2.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "adaptive_controller",
+          "name": "Adaptive Controller",
+          "qty": 1,
+          "per_min": 1.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "turbo_drive",
+      "name": "Turbo Drive",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "turbo_drive",
+      "cycle_seconds": 32,
+      "inputs": [
+        {
+          "item": "coolant_unit",
+          "name": "Coolant Unit",
+          "qty": 4,
+          "per_min": 7.5
+        },
+        {
+          "item": "signal_control_unit",
+          "name": "Signal Control Unit",
+          "qty": 2,
+          "per_min": 3.75
+        },
+        {
+          "item": "drive_motor",
+          "name": "Drive Motor",
+          "qty": 4,
+          "per_min": 7.5
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 24,
+          "per_min": 45.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "turbo_drive",
+          "name": "Turbo Drive",
+          "qty": 1,
+          "per_min": 1.875
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "thermal_rocket",
+      "name": "Thermal Rocket",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "thermal_rocket",
+      "cycle_seconds": 120,
+      "inputs": [
+        {
+          "item": "drive_engine",
+          "name": "Drive Engine",
+          "qty": 5,
+          "per_min": 2.5
+        },
+        {
+          "item": "turbo_drive",
+          "name": "Turbo Drive",
+          "qty": 2,
+          "per_min": 1.0
+        },
+        {
+          "item": "coolant_unit",
+          "name": "Coolant Unit",
+          "qty": 6,
+          "per_min": 3.0
+        },
+        {
+          "item": "fused_frame",
+          "name": "Fused Frame",
+          "qty": 2,
+          "per_min": 1.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "thermal_rocket",
+          "name": "Thermal Rocket",
+          "qty": 2,
+          "per_min": 1.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "anom_fluctuator",
+      "name": "Anom Fluctuator",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "anom_fluctuator",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "reactivated_anomite",
+          "name": "Reactivated Anomite",
+          "qty": 6,
+          "per_min": 60.0
+        },
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 5,
+          "per_min": 50.0
+        },
+        {
+          "item": "steel_tube",
+          "name": "Steel Tube",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "anom_fluctuator",
+          "name": "Anom Fluctuator",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "radite_fuel_rod",
+      "name": "Radite Fuel Rod",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "radite_fuel_rod",
+      "cycle_seconds": 150,
+      "inputs": [
+        {
+          "item": "cased_radite_cell",
+          "name": "Cased Radite Cell",
+          "qty": 50,
+          "per_min": 20.0
+        },
+        {
+          "item": "encased_girder",
+          "name": "Encased Girder",
+          "qty": 3,
+          "per_min": 1.2
+        },
+        {
+          "item": "em_control_rod",
+          "name": "EM Control Rod",
+          "qty": 5,
+          "per_min": 2.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "radite_fuel_rod",
+          "name": "Radite Fuel Rod",
+          "qty": 1,
+          "per_min": 0.4
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "plutone_fuel_rod",
+      "name": "Plutone Fuel Rod",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "plutone_fuel_rod",
+      "cycle_seconds": 240,
+      "inputs": [
+        {
+          "item": "cased_plutone_cell",
+          "name": "Cased Plutone Cell",
+          "qty": 30,
+          "per_min": 7.5
+        },
+        {
+          "item": "steel_girder",
+          "name": "Steel Girder",
+          "qty": 18,
+          "per_min": 4.5
+        },
+        {
+          "item": "em_control_rod",
+          "name": "EM Control Rod",
+          "qty": 6,
+          "per_min": 1.5
+        },
+        {
+          "item": "thermal_sink",
+          "name": "Thermal Sink",
+          "qty": 10,
+          "per_min": 2.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "plutone_fuel_rod",
+          "name": "Plutone Fuel Rod",
+          "qty": 1,
+          "per_min": 0.25
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "void_cell",
+      "name": "Void Cell",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "void_cell",
+      "cycle_seconds": 60,
+      "inputs": [
+        {
+          "item": "quantum_pasta",
+          "name": "Quantum Pasta",
+          "qty": 1,
+          "per_min": 1.0
+        },
+        {
+          "item": "void_crystal",
+          "name": "Void Crystal",
+          "qty": 20,
+          "per_min": 20.0
+        },
+        {
+          "item": "ferrite_plate",
+          "name": "Ferrite Plate",
+          "qty": 100,
+          "per_min": 100.0
+        },
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 200,
+          "per_min": 200.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "void_cell",
+          "name": "Void Cell",
+          "qty": 10,
+          "per_min": 10.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "warp_drive",
+      "name": "Warp Drive",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "warp_drive",
+      "cycle_seconds": 60,
+      "inputs": [
+        {
+          "item": "thermal_rocket",
+          "name": "Thermal Rocket",
+          "qty": 1,
+          "per_min": 1.0
+        },
+        {
+          "item": "void_cell",
+          "name": "Void Cell",
+          "qty": 5,
+          "per_min": 5.0
+        },
+        {
+          "item": "quantum_oscillator",
+          "name": "Quantum Oscillator",
+          "qty": 2,
+          "per_min": 2.0
+        },
+        {
+          "item": "void_crystal",
+          "name": "Void Crystal",
+          "qty": 40,
+          "per_min": 40.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "warp_drive",
+          "name": "Warp Drive",
+          "qty": 1,
+          "per_min": 1.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "air_filter",
+      "name": "Air Filter",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "air_filter",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "fiber_weave",
+          "name": "Fiber Weave",
+          "qty": 2,
+          "per_min": 15.0
+        },
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 4,
+          "per_min": 30.0
+        },
+        {
+          "item": "ferrite_plate",
+          "name": "Ferrite Plate",
+          "qty": 2,
+          "per_min": 15.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "air_filter",
+          "name": "Air Filter",
+          "qty": 1,
+          "per_min": 7.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "iodine_filter",
+      "name": "Iodine Filter",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": false,
+      "primary_output": "iodine_filter",
+      "cycle_seconds": 16,
+      "inputs": [
+        {
+          "item": "air_filter",
+          "name": "Air Filter",
+          "qty": 1,
+          "per_min": 3.75
+        },
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 8,
+          "per_min": 30.0
+        },
+        {
+          "item": "alumide_casing",
+          "name": "Alumide Casing",
+          "qty": 1,
+          "per_min": 3.75
+        }
+      ],
+      "outputs": [
+        {
+          "item": "iodine_filter",
+          "name": "Iodine Filter",
+          "qty": 1,
+          "per_min": 3.75
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "synthplast",
+      "name": "Synthplast",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "synthplast",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "crude_petrol",
+          "name": "Crude Petrol",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 2,
+          "per_min": 20.0
+        },
+        {
+          "item": "heavy_oil_sludge",
+          "name": "Heavy Oil Sludge",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "synthrubber",
+      "name": "Synthrubber",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "synthrubber",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "crude_petrol",
+          "name": "Crude Petrol",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 2,
+          "per_min": 20.0
+        },
+        {
+          "item": "heavy_oil_sludge",
+          "name": "Heavy Oil Sludge",
+          "qty": 2,
+          "per_min": 20.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "refined_fuel",
+      "name": "Refined Fuel",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "refined_fuel",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "crude_petrol",
+          "name": "Crude Petrol",
+          "qty": 6,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "refined_fuel",
+          "name": "Refined Fuel",
+          "qty": 4,
+          "per_min": 40.0
+        },
+        {
+          "item": "raw_resin",
+          "name": "Raw Resin",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "residual_synthplast",
+      "name": "Residual Synthplast",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "synthplast",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "raw_resin",
+          "name": "Raw Resin",
+          "qty": 6,
+          "per_min": 60.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 2,
+          "per_min": 20.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 2,
+          "per_min": 20.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "residual_synthrubber",
+      "name": "Residual Synthrubber",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "synthrubber",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "raw_resin",
+          "name": "Raw Resin",
+          "qty": 4,
+          "per_min": 40.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 4,
+          "per_min": 40.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 2,
+          "per_min": 20.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "residual_fuel",
+      "name": "Residual Fuel",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "refined_fuel",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "heavy_oil_sludge",
+          "name": "Heavy Oil Sludge",
+          "qty": 6,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "refined_fuel",
+          "name": "Refined Fuel",
+          "qty": 4,
+          "per_min": 40.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "petro_coke",
+      "name": "Petro Coke",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "petro_coke",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "heavy_oil_sludge",
+          "name": "Heavy Oil Sludge",
+          "qty": 4,
+          "per_min": 40.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "petro_coke",
+          "name": "Petro Coke",
+          "qty": 12,
+          "per_min": 120.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "sulfur_acid",
+      "name": "Sulfur Acid",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "sulfur_acid",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "brimstone",
+          "name": "Brimstone",
+          "qty": 5,
+          "per_min": 50.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 5,
+          "per_min": 50.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "sulfur_acid",
+          "name": "Sulfur Acid",
+          "qty": 5,
+          "per_min": 50.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "alumide_slurry",
+      "name": "Alumide Slurry",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "alumide_slurry",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "claystone",
+          "name": "Claystone",
+          "qty": 12,
+          "per_min": 120.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 18,
+          "per_min": 180.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "alumide_slurry",
+          "name": "Alumide Slurry",
+          "qty": 12,
+          "per_min": 120.0
+        },
+        {
+          "item": "silicate_grit",
+          "name": "Silicate Grit",
+          "qty": 5,
+          "per_min": 50.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "alumide_scrap",
+      "name": "Alumide Scrap",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "alumide_scrap",
+      "cycle_seconds": 1,
+      "inputs": [
+        {
+          "item": "alumide_slurry",
+          "name": "Alumide Slurry",
+          "qty": 4,
+          "per_min": 240.0
+        },
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 2,
+          "per_min": 120.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "alumide_scrap",
+          "name": "Alumide Scrap",
+          "qty": 6,
+          "per_min": 360.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 2,
+          "per_min": 120.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "boosted_fuel",
+      "name": "Boosted Fuel",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "boosted_fuel",
+      "cycle_seconds": 16,
+      "inputs": [
+        {
+          "item": "refined_fuel",
+          "name": "Refined Fuel",
+          "qty": 6,
+          "per_min": 22.5
+        },
+        {
+          "item": "pressed_coal",
+          "name": "Pressed Coal",
+          "qty": 4,
+          "per_min": 15.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "boosted_fuel",
+          "name": "Boosted Fuel",
+          "qty": 5,
+          "per_min": 18.75
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "bio_diesel",
+      "name": "Bio-Diesel",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "bio_diesel",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "bio_pellet",
+          "name": "Bio-Pellet",
+          "qty": 6,
+          "per_min": 90.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 3,
+          "per_min": 45.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "bio_diesel",
+          "name": "Bio-Diesel",
+          "qty": 4,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "charged_fuel",
+      "name": "Charged Fuel",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": false,
+      "primary_output": "charged_fuel",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "thruster_fuel",
+          "name": "Thruster Fuel",
+          "qty": 16,
+          "per_min": 40.0
+        },
+        {
+          "item": "surge_shard",
+          "name": "Surge Shard",
+          "qty": 1,
+          "per_min": 2.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "charged_fuel",
+          "name": "Charged Fuel",
+          "qty": 16,
+          "per_min": 40.0
+        },
+        {
+          "item": "pressed_coal",
+          "name": "Pressed Coal",
+          "qty": 2,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "power_cell",
+      "name": "Power Cell",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": false,
+      "primary_output": "power_cell",
+      "cycle_seconds": 3,
+      "inputs": [
+        {
+          "item": "sulfur_acid",
+          "name": "Sulfur Acid",
+          "qty": 2.5,
+          "per_min": 50.0
+        },
+        {
+          "item": "alumide_slurry",
+          "name": "Alumide Slurry",
+          "qty": 2,
+          "per_min": 40.0
+        },
+        {
+          "item": "alumide_casing",
+          "name": "Alumide Casing",
+          "qty": 1,
+          "per_min": 20.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "power_cell",
+          "name": "Power Cell",
+          "qty": 1,
+          "per_min": 20.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 1.5,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "coolant_unit",
+      "name": "Coolant Unit",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": false,
+      "primary_output": "coolant_unit",
+      "cycle_seconds": 10,
+      "inputs": [
+        {
+          "item": "thermal_sink",
+          "name": "Thermal Sink",
+          "qty": 2,
+          "per_min": 12.0
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 2,
+          "per_min": 12.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 5,
+          "per_min": 30.0
+        },
+        {
+          "item": "azote_gas",
+          "name": "Azote Gas",
+          "qty": 25,
+          "per_min": 150.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "coolant_unit",
+          "name": "Coolant Unit",
+          "qty": 1,
+          "per_min": 6.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "nitro_acid",
+      "name": "Nitro Acid",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": false,
+      "primary_output": "nitro_acid",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "azote_gas",
+          "name": "Azote Gas",
+          "qty": 12,
+          "per_min": 120.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 3,
+          "per_min": 30.0
+        },
+        {
+          "item": "ferrite_plate",
+          "name": "Ferrite Plate",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "nitro_acid",
+          "name": "Nitro Acid",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "cased_radite_cell",
+      "name": "Cased Radite Cell",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": false,
+      "primary_output": "cased_radite_cell",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "radite_ore",
+          "name": "Radite Ore",
+          "qty": 10,
+          "per_min": 50.0
+        },
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 3,
+          "per_min": 15.0
+        },
+        {
+          "item": "sulfur_acid",
+          "name": "Sulfur Acid",
+          "qty": 8,
+          "per_min": 40.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cased_radite_cell",
+          "name": "Cased Radite Cell",
+          "qty": 5,
+          "per_min": 25.0
+        },
+        {
+          "item": "sulfur_acid",
+          "name": "Sulfur Acid",
+          "qty": 2,
+          "per_min": 10.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "stable_radite",
+      "name": "Stable Radite",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": false,
+      "primary_output": "stable_radite",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "depleted_radite",
+          "name": "Depleted Radite",
+          "qty": 15,
+          "per_min": 37.5
+        },
+        {
+          "item": "silicate_grit",
+          "name": "Silicate Grit",
+          "qty": 10,
+          "per_min": 25.0
+        },
+        {
+          "item": "nitro_acid",
+          "name": "Nitro Acid",
+          "qty": 6,
+          "per_min": 15.0
+        },
+        {
+          "item": "sulfur_acid",
+          "name": "Sulfur Acid",
+          "qty": 6,
+          "per_min": 15.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "stable_radite",
+          "name": "Stable Radite",
+          "qty": 20,
+          "per_min": 50.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 6,
+          "per_min": 15.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fused_frame",
+      "name": "Fused Frame",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": false,
+      "primary_output": "fused_frame",
+      "cycle_seconds": 40,
+      "inputs": [
+        {
+          "item": "reinforced_frame",
+          "name": "Reinforced Frame",
+          "qty": 1,
+          "per_min": 1.5
+        },
+        {
+          "item": "alumide_ingot",
+          "name": "Alumide Ingot",
+          "qty": 50,
+          "per_min": 75.0
+        },
+        {
+          "item": "azote_gas",
+          "name": "Azote Gas",
+          "qty": 25,
+          "per_min": 37.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "fused_frame",
+          "name": "Fused Frame",
+          "qty": 1,
+          "per_min": 1.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "thruster_fuel",
+      "name": "Thruster Fuel",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": false,
+      "primary_output": "thruster_fuel",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "boosted_fuel",
+          "name": "Boosted Fuel",
+          "qty": 6,
+          "per_min": 60.0
+        },
+        {
+          "item": "nitro_acid",
+          "name": "Nitro Acid",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "thruster_fuel",
+          "name": "Thruster Fuel",
+          "qty": 10,
+          "per_min": 100.0
+        },
+        {
+          "item": "pressed_coal",
+          "name": "Pressed Coal",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "biochem_sculptor",
+      "name": "Biochem Sculptor",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": false,
+      "primary_output": "biochem_sculptor",
+      "cycle_seconds": 120,
+      "inputs": [
+        {
+          "item": "director_system",
+          "name": "Director System",
+          "qty": 1,
+          "per_min": 0.5
+        },
+        {
+          "item": "coreite_trigon",
+          "name": "Coreite Trigon",
+          "qty": 80,
+          "per_min": 40.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 20,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "biochem_sculptor",
+          "name": "Biochem Sculptor",
+          "qty": 4,
+          "per_min": 2.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "synth_diamond",
+      "name": "Synth Diamond",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": false,
+      "primary_output": "synth_diamond",
+      "cycle_seconds": 2,
+      "inputs": [
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 20,
+          "per_min": 600.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synth_diamond",
+          "name": "Synth Diamond",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "void_crystal",
+      "name": "Void Crystal",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": false,
+      "primary_output": "void_crystal",
+      "cycle_seconds": 2,
+      "inputs": [
+        {
+          "item": "synth_diamond",
+          "name": "Synth Diamond",
+          "qty": 1,
+          "per_min": 30.0
+        },
+        {
+          "item": "void_residue",
+          "name": "Void Residue",
+          "qty": 5,
+          "per_min": 150.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "void_crystal",
+          "name": "Void Crystal",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "quantum_pasta",
+      "name": "Quantum Pasta",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": false,
+      "primary_output": "quantum_pasta",
+      "cycle_seconds": 120,
+      "inputs": [
+        {
+          "item": "cuprite_powder",
+          "name": "Cuprite Powder",
+          "qty": 200,
+          "per_min": 100.0
+        },
+        {
+          "item": "pressure_cube",
+          "name": "Pressure Cube",
+          "qty": 1,
+          "per_min": 0.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "quantum_pasta",
+          "name": "Quantum Pasta",
+          "qty": 1,
+          "per_min": 0.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "plutone_pellet",
+      "name": "Plutone Pellet",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": false,
+      "primary_output": "plutone_pellet",
+      "cycle_seconds": 60,
+      "inputs": [
+        {
+          "item": "stable_radite",
+          "name": "Stable Radite",
+          "qty": 100,
+          "per_min": 100.0
+        },
+        {
+          "item": "depleted_radite",
+          "name": "Depleted Radite",
+          "qty": 25,
+          "per_min": 25.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "plutone_pellet",
+          "name": "Plutone Pellet",
+          "qty": 30,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "coronium",
+      "name": "Coronium",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": false,
+      "primary_output": "coronium",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "depleted_plutone",
+          "name": "Depleted Plutone",
+          "qty": 1,
+          "per_min": 10.0
+        },
+        {
+          "item": "void_cell",
+          "name": "Void Cell",
+          "qty": 1,
+          "per_min": 10.0
+        },
+        {
+          "item": "void_residue",
+          "name": "Void Residue",
+          "qty": 20,
+          "per_min": 200.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "coronium",
+          "name": "Coronium",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "void_residue",
+      "name": "Void Residue",
+      "building": "transmuter",
+      "building_name": "Transmuter",
+      "alternate": false,
+      "primary_output": "void_residue",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "reactivated_anomite",
+          "name": "Reactivated Anomite",
+          "qty": 5,
+          "per_min": 50.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "void_residue",
+          "name": "Void Residue",
+          "qty": 10,
+          "per_min": 100.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "photon_flux",
+      "name": "Photon Flux",
+      "building": "transmuter",
+      "building_name": "Transmuter",
+      "alternate": false,
+      "primary_output": "photon_flux",
+      "cycle_seconds": 3,
+      "inputs": [],
+      "outputs": [
+        {
+          "item": "photon_flux",
+          "name": "Photon Flux",
+          "qty": 10,
+          "per_min": 200.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "chrono_crystal",
+      "name": "Chrono Crystal",
+      "building": "transmuter",
+      "building_name": "Transmuter",
+      "alternate": false,
+      "primary_output": "chrono_crystal",
+      "cycle_seconds": 10,
+      "inputs": [
+        {
+          "item": "synth_diamond",
+          "name": "Synth Diamond",
+          "qty": 2,
+          "per_min": 12.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "chrono_crystal",
+          "name": "Chrono Crystal",
+          "qty": 1,
+          "per_min": 6.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "coreite_ingot_ferrite",
+      "name": "Coreite Ingot (Ferrite)",
+      "building": "transmuter",
+      "building_name": "Transmuter",
+      "alternate": false,
+      "primary_output": "coreite_ingot",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "reactivated_anomite",
+          "name": "Reactivated Anomite",
+          "qty": 4,
+          "per_min": 40.0
+        },
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 24,
+          "per_min": 240.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "coreite_ingot",
+          "name": "Coreite Ingot",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "coreite_ingot_auralite",
+      "name": "Coreite Ingot (Auralite)",
+      "building": "transmuter",
+      "building_name": "Transmuter",
+      "alternate": false,
+      "primary_output": "coreite_ingot",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "reactivated_anomite",
+          "name": "Reactivated Anomite",
+          "qty": 3,
+          "per_min": 45.0
+        },
+        {
+          "item": "auralite_ingot",
+          "name": "Auralite Ingot",
+          "qty": 4,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "coreite_ingot",
+          "name": "Coreite Ingot",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "coreite_ingot_alumide",
+      "name": "Coreite Ingot (Alumide)",
+      "building": "transmuter",
+      "building_name": "Transmuter",
+      "alternate": false,
+      "primary_output": "coreite_ingot",
+      "cycle_seconds": 2,
+      "inputs": [
+        {
+          "item": "reactivated_anomite",
+          "name": "Reactivated Anomite",
+          "qty": 2,
+          "per_min": 60.0
+        },
+        {
+          "item": "alumide_ingot",
+          "name": "Alumide Ingot",
+          "qty": 4,
+          "per_min": 120.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "coreite_ingot",
+          "name": "Coreite Ingot",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "neural_processor",
+      "name": "Neural Processor",
+      "building": "quantum_forge",
+      "building_name": "Quantum Forge",
+      "alternate": false,
+      "primary_output": "neural_processor",
+      "cycle_seconds": 20,
+      "inputs": [
+        {
+          "item": "chrono_crystal",
+          "name": "Chrono Crystal",
+          "qty": 5,
+          "per_min": 15.0
+        },
+        {
+          "item": "mainframe_module",
+          "name": "Mainframe Module",
+          "qty": 1,
+          "per_min": 3.0
+        },
+        {
+          "item": "coreite_trigon",
+          "name": "Coreite Trigon",
+          "qty": 15,
+          "per_min": 45.0
+        },
+        {
+          "item": "photon_flux",
+          "name": "Photon Flux",
+          "qty": 25,
+          "per_min": 75.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "neural_processor",
+          "name": "Neural Processor",
+          "qty": 1,
+          "per_min": 3.0
+        },
+        {
+          "item": "void_residue",
+          "name": "Void Residue",
+          "qty": 25,
+          "per_min": 75.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "quantum_oscillator",
+      "name": "Quantum Oscillator",
+      "building": "quantum_forge",
+      "building_name": "Quantum Forge",
+      "alternate": false,
+      "primary_output": "quantum_oscillator",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "void_crystal",
+          "name": "Void Crystal",
+          "qty": 6,
+          "per_min": 30.0
+        },
+        {
+          "item": "quartz_oscillator",
+          "name": "Quartz Oscillator",
+          "qty": 1,
+          "per_min": 5.0
+        },
+        {
+          "item": "clad_alumide_sheet",
+          "name": "Clad Alumide Sheet",
+          "qty": 9,
+          "per_min": 45.0
+        },
+        {
+          "item": "photon_flux",
+          "name": "Photon Flux",
+          "qty": 25,
+          "per_min": 125.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "quantum_oscillator",
+          "name": "Quantum Oscillator",
+          "qty": 1,
+          "per_min": 5.0
+        },
+        {
+          "item": "void_residue",
+          "name": "Void Residue",
+          "qty": 25,
+          "per_min": 125.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "ai_server",
+      "name": "AI Server",
+      "building": "quantum_forge",
+      "building_name": "Quantum Forge",
+      "alternate": false,
+      "primary_output": "ai_server",
+      "cycle_seconds": 15,
+      "inputs": [
+        {
+          "item": "field_generator",
+          "name": "Field Generator",
+          "qty": 1,
+          "per_min": 4.0
+        },
+        {
+          "item": "neural_processor",
+          "name": "Neural Processor",
+          "qty": 1,
+          "per_min": 4.0
+        },
+        {
+          "item": "quantum_oscillator",
+          "name": "Quantum Oscillator",
+          "qty": 1,
+          "per_min": 4.0
+        },
+        {
+          "item": "photon_flux",
+          "name": "Photon Flux",
+          "qty": 25,
+          "per_min": 100.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "ai_server",
+          "name": "AI Server",
+          "qty": 1,
+          "per_min": 4.0
+        },
+        {
+          "item": "void_residue",
+          "name": "Void Residue",
+          "qty": 25,
+          "per_min": 100.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "anom_power_matrix",
+      "name": "Anom Power Matrix",
+      "building": "quantum_forge",
+      "building_name": "Quantum Forge",
+      "alternate": false,
+      "primary_output": "anom_power_matrix",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "anom_fluctuator",
+          "name": "Anom Fluctuator",
+          "qty": 5,
+          "per_min": 12.5
+        },
+        {
+          "item": "surge_shard",
+          "name": "Surge Shard",
+          "qty": 3,
+          "per_min": 7.5
+        },
+        {
+          "item": "quantum_oscillator",
+          "name": "Quantum Oscillator",
+          "qty": 3,
+          "per_min": 7.5
+        },
+        {
+          "item": "photon_flux",
+          "name": "Photon Flux",
+          "qty": 24,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "anom_power_matrix",
+          "name": "Anom Power Matrix",
+          "qty": 1,
+          "per_min": 2.5
+        },
+        {
+          "item": "void_residue",
+          "name": "Void Residue",
+          "qty": 24,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "synthetic_surge_shard",
+      "name": "Synthetic Surge Shard",
+      "building": "quantum_forge",
+      "building_name": "Quantum Forge",
+      "alternate": false,
+      "primary_output": "surge_shard",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "chrono_crystal",
+          "name": "Chrono Crystal",
+          "qty": 2,
+          "per_min": 10.0
+        },
+        {
+          "item": "void_crystal",
+          "name": "Void Crystal",
+          "qty": 2,
+          "per_min": 10.0
+        },
+        {
+          "item": "prism_crystal",
+          "name": "Prism Crystal",
+          "qty": 12,
+          "per_min": 60.0
+        },
+        {
+          "item": "photon_flux",
+          "name": "Photon Flux",
+          "qty": 12,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "surge_shard",
+          "name": "Surge Shard",
+          "qty": 1,
+          "per_min": 5.0
+        },
+        {
+          "item": "void_residue",
+          "name": "Void Residue",
+          "qty": 12,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "coronium_fuel_rod",
+      "name": "Coronium Fuel Rod",
+      "building": "quantum_forge",
+      "building_name": "Quantum Forge",
+      "alternate": false,
+      "primary_output": "coronium_fuel_rod",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "coronium",
+          "name": "Coronium",
+          "qty": 2,
+          "per_min": 5.0
+        },
+        {
+          "item": "em_control_rod",
+          "name": "EM Control Rod",
+          "qty": 2,
+          "per_min": 5.0
+        },
+        {
+          "item": "coreite_trigon",
+          "name": "Coreite Trigon",
+          "qty": 40,
+          "per_min": 100.0
+        },
+        {
+          "item": "photon_flux",
+          "name": "Photon Flux",
+          "qty": 20,
+          "per_min": 50.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "coronium_fuel_rod",
+          "name": "Coronium Fuel Rod",
+          "qty": 1,
+          "per_min": 2.5
+        },
+        {
+          "item": "void_residue",
+          "name": "Void Residue",
+          "qty": 20,
+          "per_min": 50.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "basic_ferrite_ingot",
+      "name": "Basic Ferrite Ingot",
+      "building": "alloy_foundry",
+      "building_name": "Alloy Foundry",
+      "alternate": true,
+      "primary_output": "ferrite_ingot",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "ferrite_ore",
+          "name": "Ferrite Ore",
+          "qty": 5,
+          "per_min": 25.0
+        },
+        {
+          "item": "chalkstone",
+          "name": "Chalkstone",
+          "qty": 8,
+          "per_min": 40.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 10,
+          "per_min": 50.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "ferrite_alloy_ingot",
+      "name": "Ferrite Alloy Ingot",
+      "building": "alloy_foundry",
+      "building_name": "Alloy Foundry",
+      "alternate": true,
+      "primary_output": "ferrite_ingot",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "ferrite_ore",
+          "name": "Ferrite Ore",
+          "qty": 8,
+          "per_min": 40.0
+        },
+        {
+          "item": "cuprite_ore",
+          "name": "Cuprite Ore",
+          "qty": 2,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 15,
+          "per_min": 75.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "pure_ferrite_ingot",
+      "name": "Pure Ferrite Ingot",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "ferrite_ingot",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "ferrite_ore",
+          "name": "Ferrite Ore",
+          "qty": 7,
+          "per_min": 35.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 4,
+          "per_min": 20.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 13,
+          "per_min": 65.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "leached_ferrite_ingot",
+      "name": "Leached Ferrite Ingot",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "ferrite_ingot",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "ferrite_ore",
+          "name": "Ferrite Ore",
+          "qty": 5,
+          "per_min": 50.0
+        },
+        {
+          "item": "sulfur_acid",
+          "name": "Sulfur Acid",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 10,
+          "per_min": 100.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "cuprite_alloy_ingot",
+      "name": "Cuprite Alloy Ingot",
+      "building": "alloy_foundry",
+      "building_name": "Alloy Foundry",
+      "alternate": true,
+      "primary_output": "cuprite_ingot",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "cuprite_ore",
+          "name": "Cuprite Ore",
+          "qty": 5,
+          "per_min": 50.0
+        },
+        {
+          "item": "ferrite_ore",
+          "name": "Ferrite Ore",
+          "qty": 5,
+          "per_min": 50.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 10,
+          "per_min": 100.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "pure_cuprite_ingot",
+      "name": "Pure Cuprite Ingot",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "cuprite_ingot",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "cuprite_ore",
+          "name": "Cuprite Ore",
+          "qty": 6,
+          "per_min": 15.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 4,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 15,
+          "per_min": 37.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "leached_cuprite_ingot",
+      "name": "Leached Cuprite Ingot",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "cuprite_ingot",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "cuprite_ore",
+          "name": "Cuprite Ore",
+          "qty": 9,
+          "per_min": 45.0
+        },
+        {
+          "item": "sulfur_acid",
+          "name": "Sulfur Acid",
+          "qty": 5,
+          "per_min": 25.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 22,
+          "per_min": 110.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "pure_auralite_ingot",
+      "name": "Pure Auralite Ingot",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "auralite_ingot",
+      "cycle_seconds": 5,
+      "inputs": [
+        {
+          "item": "auralite_ore",
+          "name": "Auralite Ore",
+          "qty": 2,
+          "per_min": 24.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 2,
+          "per_min": 24.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "auralite_ingot",
+          "name": "Auralite Ingot",
+          "qty": 1,
+          "per_min": 12.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "leached_auralite_ingot",
+      "name": "Leached Auralite Ingot",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "auralite_ingot",
+      "cycle_seconds": 10,
+      "inputs": [
+        {
+          "item": "auralite_ore",
+          "name": "Auralite Ore",
+          "qty": 9,
+          "per_min": 54.0
+        },
+        {
+          "item": "sulfur_acid",
+          "name": "Sulfur Acid",
+          "qty": 5,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "auralite_ingot",
+          "name": "Auralite Ingot",
+          "qty": 6,
+          "per_min": 36.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "solid_steel_billet",
+      "name": "Solid Steel Billet",
+      "building": "alloy_foundry",
+      "building_name": "Alloy Foundry",
+      "alternate": true,
+      "primary_output": "steel_billet",
+      "cycle_seconds": 3,
+      "inputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 2,
+          "per_min": 40.0
+        },
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 2,
+          "per_min": 40.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "steel_billet",
+          "name": "Steel Billet",
+          "qty": 3,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "coke_steel_billet",
+      "name": "Coke Steel Billet",
+      "building": "alloy_foundry",
+      "building_name": "Alloy Foundry",
+      "alternate": true,
+      "primary_output": "steel_billet",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "ferrite_ore",
+          "name": "Ferrite Ore",
+          "qty": 15,
+          "per_min": 75.0
+        },
+        {
+          "item": "petro_coke",
+          "name": "Petro Coke",
+          "qty": 15,
+          "per_min": 75.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "steel_billet",
+          "name": "Steel Billet",
+          "qty": 20,
+          "per_min": 100.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "pressed_steel_billet",
+      "name": "Pressed Steel Billet",
+      "building": "alloy_foundry",
+      "building_name": "Alloy Foundry",
+      "alternate": true,
+      "primary_output": "steel_billet",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "ferrite_ore",
+          "name": "Ferrite Ore",
+          "qty": 2,
+          "per_min": 5.0
+        },
+        {
+          "item": "pressed_coal",
+          "name": "Pressed Coal",
+          "qty": 1,
+          "per_min": 2.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "steel_billet",
+          "name": "Steel Billet",
+          "qty": 4,
+          "per_min": 10.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "adhered_braced_plate",
+      "name": "Adhered Braced Plate",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "braced_plate",
+      "cycle_seconds": 16,
+      "inputs": [
+        {
+          "item": "ferrite_plate",
+          "name": "Ferrite Plate",
+          "qty": 3,
+          "per_min": 11.25
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 1,
+          "per_min": 3.75
+        }
+      ],
+      "outputs": [
+        {
+          "item": "braced_plate",
+          "name": "Braced Plate",
+          "qty": 1,
+          "per_min": 3.75
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "bolted_braced_plate",
+      "name": "Bolted Braced Plate",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "braced_plate",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "ferrite_plate",
+          "name": "Ferrite Plate",
+          "qty": 18,
+          "per_min": 90.0
+        },
+        {
+          "item": "bolts",
+          "name": "Bolts",
+          "qty": 50,
+          "per_min": 250.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "braced_plate",
+          "name": "Braced Plate",
+          "qty": 3,
+          "per_min": 15.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "stitched_braced_plate",
+      "name": "Stitched Braced Plate",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "braced_plate",
+      "cycle_seconds": 32,
+      "inputs": [
+        {
+          "item": "ferrite_plate",
+          "name": "Ferrite Plate",
+          "qty": 10,
+          "per_min": 18.75
+        },
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 20,
+          "per_min": 37.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "braced_plate",
+          "name": "Braced Plate",
+          "qty": 3,
+          "per_min": 5.625
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "coated_ferrite_plate",
+      "name": "Coated Ferrite Plate",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "ferrite_plate",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 5,
+          "per_min": 37.5
+        },
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 1,
+          "per_min": 7.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "ferrite_plate",
+          "name": "Ferrite Plate",
+          "qty": 10,
+          "per_min": 75.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "bolted_braced_frame",
+      "name": "Bolted Braced Frame",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "braced_frame",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "braced_plate",
+          "name": "Braced Plate",
+          "qty": 3,
+          "per_min": 7.5
+        },
+        {
+          "item": "bolts",
+          "name": "Bolts",
+          "qty": 56,
+          "per_min": 140.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "braced_frame",
+          "name": "Braced Frame",
+          "qty": 2,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "steeled_braced_frame",
+      "name": "Steeled Braced Frame",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "braced_frame",
+      "cycle_seconds": 60,
+      "inputs": [
+        {
+          "item": "braced_plate",
+          "name": "Braced Plate",
+          "qty": 2,
+          "per_min": 2.0
+        },
+        {
+          "item": "steel_tube",
+          "name": "Steel Tube",
+          "qty": 10,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "braced_frame",
+          "name": "Braced Frame",
+          "qty": 3,
+          "per_min": 3.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "flexible_utility_frame",
+      "name": "Flexible Utility Frame",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "utility_frame",
+      "cycle_seconds": 16,
+      "inputs": [
+        {
+          "item": "braced_frame",
+          "name": "Braced Frame",
+          "qty": 1,
+          "per_min": 3.75
+        },
+        {
+          "item": "steel_girder",
+          "name": "Steel Girder",
+          "qty": 6,
+          "per_min": 22.5
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 8,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "utility_frame",
+          "name": "Utility Frame",
+          "qty": 2,
+          "per_min": 7.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "heavy_encased_frame",
+      "name": "Heavy Encased Frame",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "reinforced_frame",
+      "cycle_seconds": 64,
+      "inputs": [
+        {
+          "item": "braced_frame",
+          "name": "Braced Frame",
+          "qty": 8,
+          "per_min": 7.5
+        },
+        {
+          "item": "encased_girder",
+          "name": "Encased Girder",
+          "qty": 10,
+          "per_min": 9.375
+        },
+        {
+          "item": "steel_tube",
+          "name": "Steel Tube",
+          "qty": 36,
+          "per_min": 33.75
+        },
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 22,
+          "per_min": 20.625
+        }
+      ],
+      "outputs": [
+        {
+          "item": "reinforced_frame",
+          "name": "Reinforced Frame",
+          "qty": 3,
+          "per_min": 2.812
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "heavy_flexible_frame",
+      "name": "Heavy Flexible Frame",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "reinforced_frame",
+      "cycle_seconds": 16,
+      "inputs": [
+        {
+          "item": "braced_frame",
+          "name": "Braced Frame",
+          "qty": 5,
+          "per_min": 18.75
+        },
+        {
+          "item": "encased_girder",
+          "name": "Encased Girder",
+          "qty": 3,
+          "per_min": 11.25
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 20,
+          "per_min": 75.0
+        },
+        {
+          "item": "bolts",
+          "name": "Bolts",
+          "qty": 104,
+          "per_min": 390.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "reinforced_frame",
+          "name": "Reinforced Frame",
+          "qty": 1,
+          "per_min": 3.75
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "heat_fused_frame",
+      "name": "Heat-Fused Frame",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": true,
+      "primary_output": "fused_frame",
+      "cycle_seconds": 20,
+      "inputs": [
+        {
+          "item": "reinforced_frame",
+          "name": "Reinforced Frame",
+          "qty": 1,
+          "per_min": 3.0
+        },
+        {
+          "item": "alumide_ingot",
+          "name": "Alumide Ingot",
+          "qty": 50,
+          "per_min": 150.0
+        },
+        {
+          "item": "nitro_acid",
+          "name": "Nitro Acid",
+          "qty": 8,
+          "per_min": 24.0
+        },
+        {
+          "item": "refined_fuel",
+          "name": "Refined Fuel",
+          "qty": 10,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "fused_frame",
+          "name": "Fused Frame",
+          "qty": 1,
+          "per_min": 3.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "alumide_rod",
+      "name": "Alumide Rod",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": true,
+      "primary_output": "ferrite_rod",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "alumide_ingot",
+          "name": "Alumide Ingot",
+          "qty": 1,
+          "per_min": 7.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "ferrite_rod",
+          "name": "Ferrite Rod",
+          "qty": 7,
+          "per_min": 52.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "steel_rod",
+      "name": "Steel Rod",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": true,
+      "primary_output": "ferrite_rod",
+      "cycle_seconds": 5,
+      "inputs": [
+        {
+          "item": "steel_billet",
+          "name": "Steel Billet",
+          "qty": 1,
+          "per_min": 12.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "ferrite_rod",
+          "name": "Ferrite Rod",
+          "qty": 4,
+          "per_min": 48.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "cast_bolts",
+      "name": "Cast Bolts",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": true,
+      "primary_output": "bolts",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 5,
+          "per_min": 12.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "bolts",
+          "name": "Bolts",
+          "qty": 20,
+          "per_min": 50.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "steel_bolts",
+      "name": "Steel Bolts",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": true,
+      "primary_output": "bolts",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "steel_girder",
+          "name": "Steel Girder",
+          "qty": 1,
+          "per_min": 5.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "bolts",
+          "name": "Bolts",
+          "qty": 52,
+          "per_min": 260.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "cuprite_rotor",
+      "name": "Cuprite Rotor",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "turn_rotor",
+      "cycle_seconds": 16,
+      "inputs": [
+        {
+          "item": "cuprite_sheet",
+          "name": "Cuprite Sheet",
+          "qty": 6,
+          "per_min": 22.5
+        },
+        {
+          "item": "bolts",
+          "name": "Bolts",
+          "qty": 52,
+          "per_min": 195.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "turn_rotor",
+          "name": "Turn Rotor",
+          "qty": 3,
+          "per_min": 11.25
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "steel_rotor",
+      "name": "Steel Rotor",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "turn_rotor",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "steel_tube",
+          "name": "Steel Tube",
+          "qty": 2,
+          "per_min": 10.0
+        },
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 6,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "turn_rotor",
+          "name": "Turn Rotor",
+          "qty": 1,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "rapidwire_stator",
+      "name": "Rapidwire Stator",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "field_stator",
+      "cycle_seconds": 15,
+      "inputs": [
+        {
+          "item": "steel_tube",
+          "name": "Steel Tube",
+          "qty": 4,
+          "per_min": 16.0
+        },
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 15,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "field_stator",
+          "name": "Field Stator",
+          "qty": 2,
+          "per_min": 8.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "electric_drive_motor",
+      "name": "Electric Drive Motor",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "drive_motor",
+      "cycle_seconds": 16,
+      "inputs": [
+        {
+          "item": "em_control_rod",
+          "name": "EM Control Rod",
+          "qty": 1,
+          "per_min": 3.75
+        },
+        {
+          "item": "turn_rotor",
+          "name": "Turn Rotor",
+          "qty": 2,
+          "per_min": 7.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "drive_motor",
+          "name": "Drive Motor",
+          "qty": 2,
+          "per_min": 7.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "rigor_drive_motor",
+      "name": "Rigor Drive Motor",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "drive_motor",
+      "cycle_seconds": 48,
+      "inputs": [
+        {
+          "item": "turn_rotor",
+          "name": "Turn Rotor",
+          "qty": 3,
+          "per_min": 3.75
+        },
+        {
+          "item": "field_stator",
+          "name": "Field Stator",
+          "qty": 3,
+          "per_min": 3.75
+        },
+        {
+          "item": "quartz_oscillator",
+          "name": "Quartz Oscillator",
+          "qty": 1,
+          "per_min": 1.25
+        }
+      ],
+      "outputs": [
+        {
+          "item": "drive_motor",
+          "name": "Drive Motor",
+          "qty": 6,
+          "per_min": 7.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "turbo_electric_motor",
+      "name": "Turbo Electric Motor",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "turbo_drive",
+      "cycle_seconds": 64,
+      "inputs": [
+        {
+          "item": "drive_motor",
+          "name": "Drive Motor",
+          "qty": 7,
+          "per_min": 6.562
+        },
+        {
+          "item": "signal_control_unit",
+          "name": "Signal Control Unit",
+          "qty": 9,
+          "per_min": 8.438
+        },
+        {
+          "item": "em_control_rod",
+          "name": "EM Control Rod",
+          "qty": 5,
+          "per_min": 4.688
+        },
+        {
+          "item": "turn_rotor",
+          "name": "Turn Rotor",
+          "qty": 7,
+          "per_min": 6.562
+        }
+      ],
+      "outputs": [
+        {
+          "item": "turbo_drive",
+          "name": "Turbo Drive",
+          "qty": 3,
+          "per_min": 2.812
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "turbo_pressure_motor",
+      "name": "Turbo Pressure Motor",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "turbo_drive",
+      "cycle_seconds": 32,
+      "inputs": [
+        {
+          "item": "drive_motor",
+          "name": "Drive Motor",
+          "qty": 4,
+          "per_min": 7.5
+        },
+        {
+          "item": "pressure_cube",
+          "name": "Pressure Cube",
+          "qty": 1,
+          "per_min": 1.875
+        },
+        {
+          "item": "azote_gas",
+          "name": "Azote Gas",
+          "qty": 24,
+          "per_min": 45.0
+        },
+        {
+          "item": "field_stator",
+          "name": "Field Stator",
+          "qty": 8,
+          "per_min": 15.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "turbo_drive",
+          "name": "Turbo Drive",
+          "qty": 2,
+          "per_min": 3.75
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "rapidwire_filament",
+      "name": "Rapidwire Filament",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": true,
+      "primary_output": "filament",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "auralite_ingot",
+          "name": "Auralite Ingot",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 8,
+          "per_min": 120.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "ferrite_filament",
+      "name": "Ferrite Filament",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": true,
+      "primary_output": "filament",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 5,
+          "per_min": 12.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 9,
+          "per_min": 22.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fused_filament",
+      "name": "Fused Filament",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "filament",
+      "cycle_seconds": 20,
+      "inputs": [
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 4,
+          "per_min": 12.0
+        },
+        {
+          "item": "auralite_ingot",
+          "name": "Auralite Ingot",
+          "qty": 1,
+          "per_min": 3.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 30,
+          "per_min": 90.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "insulated_cable",
+      "name": "Insulated Cable",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "braided_cable",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 9,
+          "per_min": 45.0
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 6,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "braided_cable",
+          "name": "Braided Cable",
+          "qty": 20,
+          "per_min": 100.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "coated_cable",
+      "name": "Coated Cable",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "braided_cable",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 5,
+          "per_min": 37.5
+        },
+        {
+          "item": "heavy_oil_sludge",
+          "name": "Heavy Oil Sludge",
+          "qty": 2,
+          "per_min": 15.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "braided_cable",
+          "name": "Braided Cable",
+          "qty": 9,
+          "per_min": 67.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "rapidwire_cable",
+      "name": "Rapidwire Cable",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "braided_cable",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 3,
+          "per_min": 7.5
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 2,
+          "per_min": 5.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "braided_cable",
+          "name": "Braided Cable",
+          "qty": 11,
+          "per_min": 27.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fused_rapidwire",
+      "name": "Fused Rapidwire",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "rapidwire",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "auralite_ingot",
+          "name": "Auralite Ingot",
+          "qty": 1,
+          "per_min": 7.5
+        },
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 5,
+          "per_min": 37.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 12,
+          "per_min": 90.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "data_connector_silicate",
+      "name": "Data Connector (Silicate)",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "data_connector",
+      "cycle_seconds": 40,
+      "inputs": [
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 60,
+          "per_min": 90.0
+        },
+        {
+          "item": "silicate_grit",
+          "name": "Silicate Grit",
+          "qty": 25,
+          "per_min": 37.5
+        },
+        {
+          "item": "circuit_panel",
+          "name": "Circuit Panel",
+          "qty": 2,
+          "per_min": 3.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "data_connector",
+          "name": "Data Connector",
+          "qty": 2,
+          "per_min": 3.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "auralite_circuit_panel",
+      "name": "Auralite Circuit Panel",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "circuit_panel",
+      "cycle_seconds": 48,
+      "inputs": [
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 10,
+          "per_min": 12.5
+        },
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 30,
+          "per_min": 37.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "circuit_panel",
+          "name": "Circuit Panel",
+          "qty": 7,
+          "per_min": 8.75
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "electrode_circuit_panel",
+      "name": "Electrode Circuit Panel",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "circuit_panel",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 4,
+          "per_min": 20.0
+        },
+        {
+          "item": "petro_coke",
+          "name": "Petro Coke",
+          "qty": 8,
+          "per_min": 40.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "circuit_panel",
+          "name": "Circuit Panel",
+          "qty": 1,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "silicate_circuit_panel",
+      "name": "Silicate Circuit Panel",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "circuit_panel",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "cuprite_sheet",
+          "name": "Cuprite Sheet",
+          "qty": 11,
+          "per_min": 27.5
+        },
+        {
+          "item": "silicate_grit",
+          "name": "Silicate Grit",
+          "qty": 11,
+          "per_min": 27.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "circuit_panel",
+          "name": "Circuit Panel",
+          "qty": 5,
+          "per_min": 12.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "auralite_compute_module",
+      "name": "Auralite Compute Module",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "compute_module",
+      "cycle_seconds": 16,
+      "inputs": [
+        {
+          "item": "circuit_panel",
+          "name": "Circuit Panel",
+          "qty": 4,
+          "per_min": 15.0
+        },
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 14,
+          "per_min": 52.5
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 6,
+          "per_min": 22.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "compute_module",
+          "name": "Compute Module",
+          "qty": 1,
+          "per_min": 3.75
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "crystal_compute_module",
+      "name": "Crystal Compute Module",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "compute_module",
+      "cycle_seconds": 36,
+      "inputs": [
+        {
+          "item": "circuit_panel",
+          "name": "Circuit Panel",
+          "qty": 3,
+          "per_min": 5.0
+        },
+        {
+          "item": "quartz_oscillator",
+          "name": "Quartz Oscillator",
+          "qty": 1,
+          "per_min": 1.667
+        }
+      ],
+      "outputs": [
+        {
+          "item": "compute_module",
+          "name": "Compute Module",
+          "qty": 2,
+          "per_min": 3.333
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "overclocked_mainframe",
+      "name": "Overclocked Mainframe",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "mainframe_module",
+      "cycle_seconds": 20,
+      "inputs": [
+        {
+          "item": "signal_control_unit",
+          "name": "Signal Control Unit",
+          "qty": 2,
+          "per_min": 6.0
+        },
+        {
+          "item": "coolant_unit",
+          "name": "Coolant Unit",
+          "qty": 2,
+          "per_min": 6.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "mainframe_module",
+          "name": "Mainframe Module",
+          "qty": 1,
+          "per_min": 3.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "super_state_mainframe",
+      "name": "Super-State Mainframe",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "mainframe_module",
+      "cycle_seconds": 25,
+      "inputs": [
+        {
+          "item": "compute_module",
+          "name": "Compute Module",
+          "qty": 3,
+          "per_min": 7.2
+        },
+        {
+          "item": "em_control_rod",
+          "name": "EM Control Rod",
+          "qty": 1,
+          "per_min": 2.4
+        },
+        {
+          "item": "power_cell",
+          "name": "Power Cell",
+          "qty": 10,
+          "per_min": 24.0
+        },
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 25,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "mainframe_module",
+          "name": "Mainframe Module",
+          "qty": 1,
+          "per_min": 2.4
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "synthplast_logic_limiter",
+      "name": "Synthplast Logic Limiter",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "logic_limiter",
+      "cycle_seconds": 15,
+      "inputs": [
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 30,
+          "per_min": 120.0
+        },
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 7,
+          "per_min": 28.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "logic_limiter",
+          "name": "Logic Limiter",
+          "qty": 2,
+          "per_min": 8.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "em_connection_rod",
+      "name": "EM Connection Rod",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "em_control_rod",
+      "cycle_seconds": 15,
+      "inputs": [
+        {
+          "item": "field_stator",
+          "name": "Field Stator",
+          "qty": 2,
+          "per_min": 8.0
+        },
+        {
+          "item": "data_connector",
+          "name": "Data Connector",
+          "qty": 1,
+          "per_min": 4.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "em_control_rod",
+          "name": "EM Control Rod",
+          "qty": 2,
+          "per_min": 8.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "insulated_quartz_oscillator",
+      "name": "Insulated Quartz Oscillator",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "quartz_oscillator",
+      "cycle_seconds": 32,
+      "inputs": [
+        {
+          "item": "prism_crystal",
+          "name": "Prism Crystal",
+          "qty": 10,
+          "per_min": 18.75
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 7,
+          "per_min": 13.125
+        },
+        {
+          "item": "logic_limiter",
+          "name": "Logic Limiter",
+          "qty": 1,
+          "per_min": 1.875
+        }
+      ],
+      "outputs": [
+        {
+          "item": "quartz_oscillator",
+          "name": "Quartz Oscillator",
+          "qty": 1,
+          "per_min": 1.875
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "signal_control_connection",
+      "name": "Signal Control (Connection)",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "signal_control_unit",
+      "cycle_seconds": 16,
+      "inputs": [
+        {
+          "item": "thermal_sink",
+          "name": "Thermal Sink",
+          "qty": 4,
+          "per_min": 15.0
+        },
+        {
+          "item": "data_connector",
+          "name": "Data Connector",
+          "qty": 2,
+          "per_min": 7.5
+        },
+        {
+          "item": "prism_crystal",
+          "name": "Prism Crystal",
+          "qty": 12,
+          "per_min": 45.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "signal_control_unit",
+          "name": "Signal Control Unit",
+          "qty": 1,
+          "per_min": 3.75
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "signal_control_system",
+      "name": "Signal Control System",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "signal_control_unit",
+      "cycle_seconds": 40,
+      "inputs": [
+        {
+          "item": "quartz_oscillator",
+          "name": "Quartz Oscillator",
+          "qty": 1,
+          "per_min": 1.5
+        },
+        {
+          "item": "circuit_panel",
+          "name": "Circuit Panel",
+          "qty": 10,
+          "per_min": 15.0
+        },
+        {
+          "item": "alumide_casing",
+          "name": "Alumide Casing",
+          "qty": 60,
+          "per_min": 90.0
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 30,
+          "per_min": 45.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "signal_control_unit",
+          "name": "Signal Control Unit",
+          "qty": 3,
+          "per_min": 4.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "speed_wired_harness",
+      "name": "Speed Wired Harness",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "wired_harness",
+      "cycle_seconds": 32,
+      "inputs": [
+        {
+          "item": "field_stator",
+          "name": "Field Stator",
+          "qty": 2,
+          "per_min": 3.75
+        },
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 40,
+          "per_min": 75.0
+        },
+        {
+          "item": "data_connector",
+          "name": "Data Connector",
+          "qty": 1,
+          "per_min": 1.875
+        }
+      ],
+      "outputs": [
+        {
+          "item": "wired_harness",
+          "name": "Wired Harness",
+          "qty": 4,
+          "per_min": 7.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "synthplast_smart_panel",
+      "name": "Synthplast Smart Panel",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "smart_panel",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "braced_plate",
+          "name": "Braced Plate",
+          "qty": 1,
+          "per_min": 2.5
+        },
+        {
+          "item": "turn_rotor",
+          "name": "Turn Rotor",
+          "qty": 1,
+          "per_min": 2.5
+        },
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 3,
+          "per_min": 7.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "smart_panel",
+          "name": "Smart Panel",
+          "qty": 2,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "encased_girder_piped",
+      "name": "Encased Girder (Piped)",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "encased_girder",
+      "cycle_seconds": 15,
+      "inputs": [
+        {
+          "item": "steel_tube",
+          "name": "Steel Tube",
+          "qty": 6,
+          "per_min": 24.0
+        },
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 5,
+          "per_min": 20.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "encased_girder",
+          "name": "Encased Girder",
+          "qty": 1,
+          "per_min": 4.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "steel_girder_molded",
+      "name": "Steel Girder (Molded)",
+      "building": "alloy_foundry",
+      "building_name": "Alloy Foundry",
+      "alternate": true,
+      "primary_output": "steel_girder",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "steel_billet",
+          "name": "Steel Billet",
+          "qty": 24,
+          "per_min": 120.0
+        },
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 16,
+          "per_min": 80.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "steel_girder",
+          "name": "Steel Girder",
+          "qty": 9,
+          "per_min": 45.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "steel_tube_molded",
+      "name": "Steel Tube (Molded)",
+      "building": "alloy_foundry",
+      "building_name": "Alloy Foundry",
+      "alternate": true,
+      "primary_output": "steel_tube",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "steel_billet",
+          "name": "Steel Billet",
+          "qty": 5,
+          "per_min": 50.0
+        },
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "steel_tube",
+          "name": "Steel Tube",
+          "qty": 5,
+          "per_min": 50.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "steel_tube_ferrite",
+      "name": "Steel Tube (Ferrite)",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": true,
+      "primary_output": "steel_tube",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "ferrite_ingot",
+          "name": "Ferrite Ingot",
+          "qty": 20,
+          "per_min": 100.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "steel_tube",
+          "name": "Steel Tube",
+          "qty": 5,
+          "per_min": 25.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "steel_girder_alumide",
+      "name": "Steel Girder (Alumide)",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": true,
+      "primary_output": "steel_girder",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "alumide_ingot",
+          "name": "Alumide Ingot",
+          "qty": 3,
+          "per_min": 22.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "steel_girder",
+          "name": "Steel Girder",
+          "qty": 3,
+          "per_min": 22.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "thermal_sink_exchanger",
+      "name": "Thermal Sink (Exchanger)",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "thermal_sink",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "alumide_casing",
+          "name": "Alumide Casing",
+          "qty": 3,
+          "per_min": 30.0
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "thermal_sink",
+          "name": "Thermal Sink",
+          "qty": 1,
+          "per_min": 10.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "coolant_device",
+      "name": "Coolant Device",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": true,
+      "primary_output": "coolant_unit",
+      "cycle_seconds": 24,
+      "inputs": [
+        {
+          "item": "thermal_sink",
+          "name": "Thermal Sink",
+          "qty": 4,
+          "per_min": 10.0
+        },
+        {
+          "item": "drive_motor",
+          "name": "Drive Motor",
+          "qty": 1,
+          "per_min": 2.5
+        },
+        {
+          "item": "azote_gas",
+          "name": "Azote Gas",
+          "qty": 24,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "coolant_unit",
+          "name": "Coolant Unit",
+          "qty": 2,
+          "per_min": 5.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "alumide_casing_clad",
+      "name": "Alumide Casing (Clad)",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "alumide_casing",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "alumide_ingot",
+          "name": "Alumide Ingot",
+          "qty": 20,
+          "per_min": 150.0
+        },
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 10,
+          "per_min": 75.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "alumide_casing",
+          "name": "Alumide Casing",
+          "qty": 15,
+          "per_min": 112.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "castcrete_wet",
+      "name": "Castcrete (Wet)",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "castcrete",
+      "cycle_seconds": 3,
+      "inputs": [
+        {
+          "item": "chalkstone",
+          "name": "Chalkstone",
+          "qty": 6,
+          "per_min": 120.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 5,
+          "per_min": 100.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 4,
+          "per_min": 80.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fine_castcrete",
+      "name": "Fine Castcrete",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "castcrete",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "silicate_grit",
+          "name": "Silicate Grit",
+          "qty": 3,
+          "per_min": 15.0
+        },
+        {
+          "item": "chalkstone",
+          "name": "Chalkstone",
+          "qty": 12,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 10,
+          "per_min": 50.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "synthrubber_castcrete",
+      "name": "Synthrubber Castcrete",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "castcrete",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "chalkstone",
+          "name": "Chalkstone",
+          "qty": 10,
+          "per_min": 100.0
+        },
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 2,
+          "per_min": 20.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "castcrete",
+          "name": "Castcrete",
+          "qty": 9,
+          "per_min": 90.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "cheap_silicate_grit",
+      "name": "Cheap Silicate Grit",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "silicate_grit",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "quartzite_ore",
+          "name": "Quartzite Ore",
+          "qty": 3,
+          "per_min": 22.5
+        },
+        {
+          "item": "chalkstone",
+          "name": "Chalkstone",
+          "qty": 5,
+          "per_min": 37.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "silicate_grit",
+          "name": "Silicate Grit",
+          "qty": 7,
+          "per_min": 52.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "distilled_silicate_grit",
+      "name": "Distilled Silicate Grit",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": true,
+      "primary_output": "silicate_grit",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "silica_solution",
+          "name": "Silica Solution",
+          "qty": 12,
+          "per_min": 120.0
+        },
+        {
+          "item": "chalkstone",
+          "name": "Chalkstone",
+          "qty": 5,
+          "per_min": 50.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 10,
+          "per_min": 100.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "silicate_grit",
+          "name": "Silicate Grit",
+          "qty": 27,
+          "per_min": 270.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 8,
+          "per_min": 80.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fused_prism_crystal",
+      "name": "Fused Prism Crystal",
+      "building": "alloy_foundry",
+      "building_name": "Alloy Foundry",
+      "alternate": true,
+      "primary_output": "prism_crystal",
+      "cycle_seconds": 20,
+      "inputs": [
+        {
+          "item": "quartzite_ore",
+          "name": "Quartzite Ore",
+          "qty": 25,
+          "per_min": 75.0
+        },
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 12,
+          "per_min": 36.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "prism_crystal",
+          "name": "Prism Crystal",
+          "qty": 18,
+          "per_min": 54.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "pure_prism_crystal",
+      "name": "Pure Prism Crystal",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "prism_crystal",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "quartzite_ore",
+          "name": "Quartzite Ore",
+          "qty": 9,
+          "per_min": 67.5
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 5,
+          "per_min": 37.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "prism_crystal",
+          "name": "Prism Crystal",
+          "qty": 7,
+          "per_min": 52.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "quartzite_purification",
+      "name": "Quartzite Purification",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "prism_crystal",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "quartzite_ore",
+          "name": "Quartzite Ore",
+          "qty": 24,
+          "per_min": 120.0
+        },
+        {
+          "item": "nitro_acid",
+          "name": "Nitro Acid",
+          "qty": 2,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "prism_crystal",
+          "name": "Prism Crystal",
+          "qty": 15,
+          "per_min": 75.0
+        },
+        {
+          "item": "silica_solution",
+          "name": "Silica Solution",
+          "qty": 12,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "recycled_synthplast",
+      "name": "Recycled Synthplast",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "synthplast",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 6,
+          "per_min": 30.0
+        },
+        {
+          "item": "refined_fuel",
+          "name": "Refined Fuel",
+          "qty": 6,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 12,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "recycled_synthrubber",
+      "name": "Recycled Synthrubber",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "synthrubber",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 6,
+          "per_min": 30.0
+        },
+        {
+          "item": "refined_fuel",
+          "name": "Refined Fuel",
+          "qty": 6,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synthrubber",
+          "name": "Synthrubber",
+          "qty": 12,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "raw_resin_rich",
+      "name": "Raw Resin (Rich)",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "raw_resin",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "crude_petrol",
+          "name": "Crude Petrol",
+          "qty": 6,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "raw_resin",
+          "name": "Raw Resin",
+          "qty": 13,
+          "per_min": 130.0
+        },
+        {
+          "item": "heavy_oil_sludge",
+          "name": "Heavy Oil Sludge",
+          "qty": 2,
+          "per_min": 20.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "heavy_oil_sludge",
+      "name": "Heavy Oil Sludge",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "heavy_oil_sludge",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "crude_petrol",
+          "name": "Crude Petrol",
+          "qty": 3,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "heavy_oil_sludge",
+          "name": "Heavy Oil Sludge",
+          "qty": 4,
+          "per_min": 40.0
+        },
+        {
+          "item": "raw_resin",
+          "name": "Raw Resin",
+          "qty": 2,
+          "per_min": 20.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "diluted_refined_fuel",
+      "name": "Diluted Refined Fuel",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": true,
+      "primary_output": "refined_fuel",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "heavy_oil_sludge",
+          "name": "Heavy Oil Sludge",
+          "qty": 5,
+          "per_min": 50.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 10,
+          "per_min": 100.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "refined_fuel",
+          "name": "Refined Fuel",
+          "qty": 10,
+          "per_min": 100.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "boosted_fuel_heavy",
+      "name": "Boosted Fuel (Heavy)",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "boosted_fuel",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "heavy_oil_sludge",
+          "name": "Heavy Oil Sludge",
+          "qty": 5,
+          "per_min": 37.5
+        },
+        {
+          "item": "pressed_coal",
+          "name": "Pressed Coal",
+          "qty": 4,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "boosted_fuel",
+          "name": "Boosted Fuel",
+          "qty": 4,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "boosted_fuel_blend",
+      "name": "Boosted Fuel (Blend)",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": true,
+      "primary_output": "boosted_fuel",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "refined_fuel",
+          "name": "Refined Fuel",
+          "qty": 2,
+          "per_min": 15.0
+        },
+        {
+          "item": "heavy_oil_sludge",
+          "name": "Heavy Oil Sludge",
+          "qty": 4,
+          "per_min": 30.0
+        },
+        {
+          "item": "brimstone",
+          "name": "Brimstone",
+          "qty": 3,
+          "per_min": 22.5
+        },
+        {
+          "item": "petro_coke",
+          "name": "Petro Coke",
+          "qty": 3,
+          "per_min": 22.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "boosted_fuel",
+          "name": "Boosted Fuel",
+          "qty": 6,
+          "per_min": 45.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "nitro_thruster_fuel",
+      "name": "Nitro Thruster Fuel",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": true,
+      "primary_output": "thruster_fuel",
+      "cycle_seconds": 2.4,
+      "inputs": [
+        {
+          "item": "refined_fuel",
+          "name": "Refined Fuel",
+          "qty": 4,
+          "per_min": 100.0
+        },
+        {
+          "item": "azote_gas",
+          "name": "Azote Gas",
+          "qty": 3,
+          "per_min": 75.0
+        },
+        {
+          "item": "brimstone",
+          "name": "Brimstone",
+          "qty": 4,
+          "per_min": 100.0
+        },
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 2,
+          "per_min": 50.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "thruster_fuel",
+          "name": "Thruster Fuel",
+          "qty": 6,
+          "per_min": 150.0
+        },
+        {
+          "item": "pressed_coal",
+          "name": "Pressed Coal",
+          "qty": 1,
+          "per_min": 25.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "sloppy_alumide_slurry",
+      "name": "Sloppy Alumide Slurry",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "alumide_slurry",
+      "cycle_seconds": 3,
+      "inputs": [
+        {
+          "item": "claystone",
+          "name": "Claystone",
+          "qty": 10,
+          "per_min": 200.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 10,
+          "per_min": 200.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "alumide_slurry",
+          "name": "Alumide Slurry",
+          "qty": 12,
+          "per_min": 240.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "electrode_alumide_scrap",
+      "name": "Electrode Alumide Scrap",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "alumide_scrap",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "alumide_slurry",
+          "name": "Alumide Slurry",
+          "qty": 12,
+          "per_min": 180.0
+        },
+        {
+          "item": "petro_coke",
+          "name": "Petro Coke",
+          "qty": 4,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "alumide_scrap",
+          "name": "Alumide Scrap",
+          "qty": 20,
+          "per_min": 300.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 7,
+          "per_min": 105.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "instant_alumide_scrap",
+      "name": "Instant Alumide Scrap",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": true,
+      "primary_output": "alumide_scrap",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "claystone",
+          "name": "Claystone",
+          "qty": 15,
+          "per_min": 150.0
+        },
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 10,
+          "per_min": 100.0
+        },
+        {
+          "item": "sulfur_acid",
+          "name": "Sulfur Acid",
+          "qty": 5,
+          "per_min": 50.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 6,
+          "per_min": 60.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "alumide_scrap",
+          "name": "Alumide Scrap",
+          "qty": 30,
+          "per_min": 300.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 5,
+          "per_min": 50.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "cuprite_sheet_steamed",
+      "name": "Cuprite Sheet (Steamed)",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "cuprite_sheet",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "cuprite_ingot",
+          "name": "Cuprite Ingot",
+          "qty": 3,
+          "per_min": 22.5
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 3,
+          "per_min": 22.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cuprite_sheet",
+          "name": "Cuprite Sheet",
+          "qty": 3,
+          "per_min": 22.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fluid_canister_coated",
+      "name": "Fluid Canister (Coated)",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "fluid_canister",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "ferrite_plate",
+          "name": "Ferrite Plate",
+          "qty": 2,
+          "per_min": 30.0
+        },
+        {
+          "item": "cuprite_sheet",
+          "name": "Cuprite Sheet",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "fluid_canister",
+          "name": "Fluid Canister",
+          "qty": 4,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fluid_canister_steel",
+      "name": "Fluid Canister (Steel)",
+      "building": "fabricator",
+      "building_name": "Fabricator",
+      "alternate": true,
+      "primary_output": "fluid_canister",
+      "cycle_seconds": 6,
+      "inputs": [
+        {
+          "item": "steel_billet",
+          "name": "Steel Billet",
+          "qty": 4,
+          "per_min": 40.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "fluid_canister",
+          "name": "Fluid Canister",
+          "qty": 4,
+          "per_min": 40.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "classic_power_cell",
+      "name": "Classic Power Cell",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "power_cell",
+      "cycle_seconds": 8,
+      "inputs": [
+        {
+          "item": "brimstone",
+          "name": "Brimstone",
+          "qty": 6,
+          "per_min": 45.0
+        },
+        {
+          "item": "clad_alumide_sheet",
+          "name": "Clad Alumide Sheet",
+          "qty": 7,
+          "per_min": 52.5
+        },
+        {
+          "item": "synthplast",
+          "name": "Synthplast",
+          "qty": 8,
+          "per_min": 60.0
+        },
+        {
+          "item": "filament",
+          "name": "Filament",
+          "qty": 12,
+          "per_min": 90.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "power_cell",
+          "name": "Power Cell",
+          "qty": 4,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "infused_radite_cell",
+      "name": "Infused Radite Cell",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "cased_radite_cell",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "radite_ore",
+          "name": "Radite Ore",
+          "qty": 5,
+          "per_min": 25.0
+        },
+        {
+          "item": "silicate_grit",
+          "name": "Silicate Grit",
+          "qty": 3,
+          "per_min": 15.0
+        },
+        {
+          "item": "brimstone",
+          "name": "Brimstone",
+          "qty": 5,
+          "per_min": 25.0
+        },
+        {
+          "item": "rapidwire",
+          "name": "Rapidwire",
+          "qty": 15,
+          "per_min": 75.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cased_radite_cell",
+          "name": "Cased Radite Cell",
+          "qty": 4,
+          "per_min": 20.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fertile_radite",
+      "name": "Fertile Radite",
+      "building": "mixer",
+      "building_name": "Mixer",
+      "alternate": true,
+      "primary_output": "stable_radite",
+      "cycle_seconds": 12,
+      "inputs": [
+        {
+          "item": "radite_ore",
+          "name": "Radite Ore",
+          "qty": 5,
+          "per_min": 25.0
+        },
+        {
+          "item": "depleted_radite",
+          "name": "Depleted Radite",
+          "qty": 5,
+          "per_min": 25.0
+        },
+        {
+          "item": "nitro_acid",
+          "name": "Nitro Acid",
+          "qty": 3,
+          "per_min": 15.0
+        },
+        {
+          "item": "sulfur_acid",
+          "name": "Sulfur Acid",
+          "qty": 5,
+          "per_min": 25.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "stable_radite",
+          "name": "Stable Radite",
+          "qty": 20,
+          "per_min": 100.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 8,
+          "per_min": 40.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "instant_plutone_cell",
+      "name": "Instant Plutone Cell",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": true,
+      "primary_output": "cased_plutone_cell",
+      "cycle_seconds": 120,
+      "inputs": [
+        {
+          "item": "stable_radite",
+          "name": "Stable Radite",
+          "qty": 150,
+          "per_min": 75.0
+        },
+        {
+          "item": "alumide_casing",
+          "name": "Alumide Casing",
+          "qty": 20,
+          "per_min": 10.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "cased_plutone_cell",
+          "name": "Cased Plutone Cell",
+          "qty": 20,
+          "per_min": 10.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "radite_fuel_unit",
+      "name": "Radite Fuel Unit",
+      "building": "manufactory",
+      "building_name": "Manufactory",
+      "alternate": true,
+      "primary_output": "radite_fuel_rod",
+      "cycle_seconds": 300,
+      "inputs": [
+        {
+          "item": "cased_radite_cell",
+          "name": "Cased Radite Cell",
+          "qty": 100,
+          "per_min": 20.0
+        },
+        {
+          "item": "em_control_rod",
+          "name": "EM Control Rod",
+          "qty": 10,
+          "per_min": 2.0
+        },
+        {
+          "item": "quartz_oscillator",
+          "name": "Quartz Oscillator",
+          "qty": 3,
+          "per_min": 0.6
+        },
+        {
+          "item": "turn_rotor",
+          "name": "Turn Rotor",
+          "qty": 10,
+          "per_min": 2.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "radite_fuel_rod",
+          "name": "Radite Fuel Rod",
+          "qty": 3,
+          "per_min": 0.6
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "plutone_fuel_unit",
+      "name": "Plutone Fuel Unit",
+      "building": "assembly_station",
+      "building_name": "Assembly Station",
+      "alternate": true,
+      "primary_output": "plutone_fuel_rod",
+      "cycle_seconds": 120,
+      "inputs": [
+        {
+          "item": "cased_plutone_cell",
+          "name": "Cased Plutone Cell",
+          "qty": 20,
+          "per_min": 10.0
+        },
+        {
+          "item": "pressure_cube",
+          "name": "Pressure Cube",
+          "qty": 1,
+          "per_min": 0.5
+        }
+      ],
+      "outputs": [
+        {
+          "item": "plutone_fuel_rod",
+          "name": "Plutone Fuel Rod",
+          "qty": 1,
+          "per_min": 0.5
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "cloudy_synth_diamond",
+      "name": "Cloudy Synth Diamond",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": true,
+      "primary_output": "synth_diamond",
+      "cycle_seconds": 3,
+      "inputs": [
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 12,
+          "per_min": 240.0
+        },
+        {
+          "item": "chalkstone",
+          "name": "Chalkstone",
+          "qty": 24,
+          "per_min": 480.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synth_diamond",
+          "name": "Synth Diamond",
+          "qty": 1,
+          "per_min": 20.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "oil_based_synth_diamond",
+      "name": "Oil-Based Synth Diamond",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": true,
+      "primary_output": "synth_diamond",
+      "cycle_seconds": 3,
+      "inputs": [
+        {
+          "item": "crude_petrol",
+          "name": "Crude Petrol",
+          "qty": 10,
+          "per_min": 200.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synth_diamond",
+          "name": "Synth Diamond",
+          "qty": 2,
+          "per_min": 40.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "petro_synth_diamond",
+      "name": "Petro Synth Diamond",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": true,
+      "primary_output": "synth_diamond",
+      "cycle_seconds": 2,
+      "inputs": [
+        {
+          "item": "petro_coke",
+          "name": "Petro Coke",
+          "qty": 24,
+          "per_min": 720.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synth_diamond",
+          "name": "Synth Diamond",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "boosted_synth_diamond",
+      "name": "Boosted Synth Diamond",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": true,
+      "primary_output": "synth_diamond",
+      "cycle_seconds": 3,
+      "inputs": [
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 30,
+          "per_min": 600.0
+        },
+        {
+          "item": "boosted_fuel",
+          "name": "Boosted Fuel",
+          "qty": 2,
+          "per_min": 40.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synth_diamond",
+          "name": "Synth Diamond",
+          "qty": 3,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "pink_synth_diamond",
+      "name": "Pink Synth Diamond",
+      "building": "transmuter",
+      "building_name": "Transmuter",
+      "alternate": true,
+      "primary_output": "synth_diamond",
+      "cycle_seconds": 4,
+      "inputs": [
+        {
+          "item": "cinder_coal",
+          "name": "Cinder Coal",
+          "qty": 8,
+          "per_min": 120.0
+        },
+        {
+          "item": "prism_crystal",
+          "name": "Prism Crystal",
+          "qty": 3,
+          "per_min": 45.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "synth_diamond",
+          "name": "Synth Diamond",
+          "qty": 1,
+          "per_min": 15.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "void_crystallization",
+      "name": "Void Crystallization",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": true,
+      "primary_output": "void_crystal",
+      "cycle_seconds": 3,
+      "inputs": [
+        {
+          "item": "void_residue",
+          "name": "Void Residue",
+          "qty": 10,
+          "per_min": 200.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "void_crystal",
+          "name": "Void Crystal",
+          "qty": 1,
+          "per_min": 20.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "void_crystal_trap",
+      "name": "Void Crystal Trap",
+      "building": "accelerator",
+      "building_name": "Accelerator",
+      "alternate": true,
+      "primary_output": "void_crystal",
+      "cycle_seconds": 2,
+      "inputs": [
+        {
+          "item": "chrono_crystal",
+          "name": "Chrono Crystal",
+          "qty": 1,
+          "per_min": 30.0
+        },
+        {
+          "item": "void_residue",
+          "name": "Void Residue",
+          "qty": 5,
+          "per_min": 150.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "void_crystal",
+          "name": "Void Crystal",
+          "qty": 2,
+          "per_min": 60.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "fiber_weave_polyester",
+      "name": "Fiber Weave (Polyester)",
+      "building": "refining_column",
+      "building_name": "Refining Column",
+      "alternate": true,
+      "primary_output": "fiber_weave",
+      "cycle_seconds": 2,
+      "inputs": [
+        {
+          "item": "raw_resin",
+          "name": "Raw Resin",
+          "qty": 1,
+          "per_min": 30.0
+        },
+        {
+          "item": "water",
+          "name": "Water",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "fiber_weave",
+          "name": "Fiber Weave",
+          "qty": 1,
+          "per_min": 30.0
+        }
+      ],
+      "mvp": false
+    },
+    {
+      "id": "dark_ion_fuel",
+      "name": "Dark-Ion Fuel",
+      "building": "transmuter",
+      "building_name": "Transmuter",
+      "alternate": true,
+      "primary_output": "charged_fuel",
+      "cycle_seconds": 3,
+      "inputs": [
+        {
+          "item": "thruster_fuel",
+          "name": "Thruster Fuel",
+          "qty": 12,
+          "per_min": 240.0
+        },
+        {
+          "item": "void_crystal",
+          "name": "Void Crystal",
+          "qty": 4,
+          "per_min": 80.0
+        }
+      ],
+      "outputs": [
+        {
+          "item": "charged_fuel",
+          "name": "Charged Fuel",
+          "qty": 10,
+          "per_min": 200.0
+        },
+        {
+          "item": "pressed_coal",
+          "name": "Pressed Coal",
+          "qty": 2,
+          "per_min": 40.0
+        }
+      ],
+      "mvp": false
+    }
+  ]
+}
