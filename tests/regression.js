@@ -55,7 +55,7 @@ async function main() {
   {
     const { page, pageErrors } = await freshPage(browser);
     const out = await page.evaluate(() => {
-      const always = ['extractor', 'smelter', 'fabricator', 'terminal', 'generator', 'belt1', 'scan', 'delete'];
+      const always = ['extractor', 'smelter', 'fabricator', 'terminal', 'generator', 'belt1', 'scan', 'delete', 'contracts'];
       const buttons = Array.from(document.querySelectorAll('.tool')).map(b => ({ t: b.dataset.t, disabled: b.disabled }));
       const present = (t) => buttons.find(b => b.t === t);
       return {
@@ -541,9 +541,9 @@ async function main() {
       const allConnectsOk = [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12].every(c => !c.err);
       const deliveredBefore = G.state().lifetimeDelivered;
       G.saveGame();
-      const raw = JSON.parse(localStorage.getItem('lineBalance_save_v2'));
+      const raw = JSON.parse(localStorage.getItem('lineBalance_save_v3'));
       raw.savedAt = Date.now() - 3600 * 1000; // pretend 1 hour passed
-      localStorage.setItem('lineBalance_save_v2', JSON.stringify(raw));
+      localStorage.setItem('lineBalance_save_v3', JSON.stringify(raw));
       const ok = window.__game.loadGame();
       const deliveredAfter = window.__game.state().lifetimeDelivered;
       const techTierAfter = window.__game.state().techTier;
@@ -822,6 +822,323 @@ async function main() {
     check('smart splitter (real UI): drawing an output belt with 2 buffered goods opens the good-picker modal', modalShown && opts.length === 2, { modalShown, opts });
     check('smart splitter (real UI): picking a good from the modal completes the belt carrying that good', /connected/i.test(hint) && /Ferrite Ingot/i.test(hint), hint);
     check('smart splitter (real UI): zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- contracts
+  // Deliberately reuse the Assembly Terminal rather than a new building: once a good's CURRENT-TIER quota is
+  // met, further deliveries of that good used to just sit unconsumed in the terminal's buffer — contracts now
+  // claim exactly that leftover surplus. See mechanics-spec.md and status.md's fourth-session entry.
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => window.__game.state());
+    check('contracts: exactly CONTRACT_SLOTS (2) are active at boot, drawn from the pool', out.contracts.length === 2, out.contracts);
+    check('contracts: credits and contractsCompleted both start at 0', out.credits === 0 && out.contractsCompleted === 0, out);
+    check('contracts: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      // Force a specific, known contract into a slot so the test isn't at the mercy of pool order, then
+      // massively overproduce that good — Tier 1 only needs 30 Ferrite Plate, the contract wants 40 more on
+      // top of that, so a long tick should clear the tier AND complete (and re-roll) the contract many times.
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore' && d.rich === 2);
+      const exId = G.place('extractor', dep.x, dep.y, null, 1);
+      const smId = G.place('smelter', dep.x + 1, dep.y, 'smelt_ferrite');
+      const fabId = G.place('fabricator', dep.x + 2, dep.y, 'fab_plate');
+      const termId = G.place('terminal', dep.x + 3, dep.y);
+      const c1 = G.connect(exId, smId), c2 = G.connect(smId, fabId), c3 = G.connect(fabId, termId);
+      const hasPlateContract = G.state().contracts.some(c => c.good === 'ferrite_plate');
+      G.tickN(300);
+      const st = G.state();
+      return {
+        connectsOk: !c1.err && !c2.err && !c3.err, hasPlateContract,
+        techTier: st.techTier, credits: st.credits, contractsCompleted: st.contractsCompleted,
+        stillTwoSlots: st.contracts.length === 2,
+      };
+    });
+    check('contracts: chain connects cleanly', out.connectsOk, out);
+    check('contracts: a Ferrite Plate contract was active at boot (pool order is deterministic — c1 first)', out.hasPlateContract, out);
+    check('contracts: Tier 1 still completes normally alongside contract fulfillment', out.techTier >= 1, out);
+    check('contracts: sustained overproduction earns real Credits (surplus beyond the tier quota is being claimed)', out.credits > 0, out);
+    check('contracts: completed contracts are counted and slots stay topped up (pool rotation)', out.contractsCompleted > 0 && out.stillTwoSlots, out);
+    check('contracts: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // Real UI: the Contracts panel toggles and shows live progress; the header's Credits readout updates.
+    const { page, pageErrors } = await freshPage(browser);
+    await page.click('[data-t="contracts"]');
+    const shown = await page.evaluate(() => document.getElementById('contractsPanel').classList.contains('show'));
+    const body = await page.textContent('#contractsPanelBody');
+    const creditsHeader = await page.textContent('#creditsLbl');
+    check('contracts (real UI): tapping the Contracts tool opens the panel', shown, shown);
+    check('contracts (real UI): panel lists both active contracts with their delivery targets', /Deliver 40/.test(body) && /Deliver 30/.test(body), body);
+    check('contracts (real UI): header shows a Credits readout', creditsHeader.includes('💰'), creditsHeader);
+    check('contracts (real UI): zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- prestige
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const tooEarly = G.doPrestige();
+      const eligibleBefore = G.prestigeEligible();
+      const term = G.place('terminal', 8, 6);
+      G.deliverToTerminal(term, 'ferrite_plate', 30); G.tickN(1);
+      G.deliverToTerminal(term, 'castcrete', 20); G.deliverToTerminal(term, 'ferrite_rod', 20); G.deliverToTerminal(term, 'braided_cable', 20); G.tickN(1);
+      G.deliverToTerminal(term, 'braided_cable', 10); G.deliverToTerminal(term, 'bolts', 10); G.deliverToTerminal(term, 'filament', 10); G.tickN(1);
+      const eligibleAfter = G.prestigeEligible();
+      const before = G.state();
+      const res = G.doPrestige();
+      const after = G.state();
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore' && d.rich === 1); // 1000/min base at T1
+      const exId = G.place('extractor', dep.x, dep.y, null, 1);
+      const boostedRate = G.node(exId).rate;
+      return {
+        tooEarlyErr: tooEarly.err || null, eligibleBefore, eligibleAfter,
+        beforeNodeCount: Object.keys(before.nodes).length,
+        resOk: !!res.ok, resPrestigeCount: res.prestigeCount, resMult: res.mult,
+        afterTechTier: after.techTier, afterNodeCount: Object.keys(after.nodes).length, afterBeltCount: after.belts.length,
+        afterPrestigeCount: after.prestigeCount, afterPrestigeMult: after.prestigeMult,
+        boostedRate,
+      };
+    });
+    check('prestige: refused before any tier is complete', !!out.tooEarlyErr && out.eligibleBefore === false, out);
+    check('prestige: becomes eligible once every currently-built tier is cleared', out.eligibleAfter === true, out);
+    check('prestige: doPrestige() succeeds once eligible and reports the new prestige count/multiplier', out.resOk && out.resPrestigeCount === 1 && approx(out.resMult, 1.1, 1e-6), out);
+    check('prestige: wipes the factory (nodes/belts/techTier all reset)', out.afterTechTier === 0 && out.afterNodeCount === 0 && out.afterBeltCount === 0, out);
+    check('prestige: a freshly-placed extractor after prestige already carries the boosted rate (1000 base × 1.10 = 1100)', approx(out.boostedRate, 1100, 1e-6), out);
+    check('prestige: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // Real UI: the header Prestige button is disabled until eligible, shows the right copy once it is, and a
+    // real click (through the confirm() dialog) actually performs the reset.
+    const { page, pageErrors } = await freshPage(browser);
+    page.on('dialog', d => d.accept());
+    const disabledAtBoot = await page.$eval('#prestigeBtn', b => b.disabled);
+    await page.evaluate(() => {
+      const G = window.__game;
+      const term = G.place('terminal', 8, 6);
+      G.deliverToTerminal(term, 'ferrite_plate', 30); G.tickN(1);
+      G.deliverToTerminal(term, 'castcrete', 20); G.deliverToTerminal(term, 'ferrite_rod', 20); G.deliverToTerminal(term, 'braided_cable', 20); G.tickN(1);
+      G.deliverToTerminal(term, 'braided_cable', 10); G.deliverToTerminal(term, 'bolts', 10); G.deliverToTerminal(term, 'filament', 10); G.tickN(1);
+    });
+    await page.waitForTimeout(100); // let the render loop's updateHeader() pick up the new eligibility
+    const disabledAfterTiers = await page.$eval('#prestigeBtn', b => b.disabled);
+    const btnText = await page.textContent('#prestigeBtn');
+    await page.click('#prestigeBtn');
+    await page.waitForTimeout(100);
+    const hint = await page.textContent('#hint');
+    const st = await page.evaluate(() => window.__game.state());
+    check('prestige (real UI): the header button is disabled at boot', disabledAtBoot, disabledAtBoot);
+    check('prestige (real UI): the button enables once every tier is cleared, and shows the +% preview', disabledAfterTiers === false && /\+10%/.test(btnText), { disabledAfterTiers, btnText });
+    check('prestige (real UI): a real click (through the confirm dialog) performs the reset', /Prestige/.test(hint) && st.prestigeCount === 1 && st.techTier === 0, { hint, st });
+    check('prestige (real UI): zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // "New Game" and "Prestige" must NOT be the same reset — New Game wipes Credits/prestige too, Prestige keeps them.
+    const { page, pageErrors } = await freshPage(browser);
+    page.on('dialog', d => d.accept());
+    await page.evaluate(() => {
+      const G = window.__game;
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore' && d.rich === 2);
+      const exId = G.place('extractor', dep.x, dep.y, null, 1);
+      const smId = G.place('smelter', dep.x + 1, dep.y, 'smelt_ferrite');
+      const fabId = G.place('fabricator', dep.x + 2, dep.y, 'fab_plate');
+      const termId = G.place('terminal', dep.x + 3, dep.y);
+      G.connect(exId, smId); G.connect(smId, fabId); G.connect(fabId, termId);
+      G.tickN(300); // rack up some Credits via contract completions
+    });
+    const before = await page.evaluate(() => window.__game.state());
+    await page.click('#newGameBtn');
+    await page.waitForTimeout(100);
+    const after = await page.evaluate(() => window.__game.state());
+    check('New Game vs Prestige: a real chain racks up Credits before the reset (sanity on the setup)', before.credits > 0, before);
+    check('New Game (real UI): fully wipes Credits/contractsCompleted/prestigeCount, unlike Prestige', after.credits === 0 && after.contractsCompleted === 0 && after.prestigeCount === 0, after);
+    check('New Game: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- save/load v3 (contracts + credits + prestige)
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const before = await page.evaluate(() => {
+      const G = window.__game;
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore' && d.rich === 2);
+      const exId = G.place('extractor', dep.x, dep.y, null, 1);
+      const smId = G.place('smelter', dep.x + 1, dep.y, 'smelt_ferrite');
+      const fabId = G.place('fabricator', dep.x + 2, dep.y, 'fab_plate');
+      const termId = G.place('terminal', dep.x + 3, dep.y);
+      G.connect(exId, smId); G.connect(smId, fabId); G.connect(fabId, termId);
+      G.tickN(300);
+      G.saveGame();
+      return G.state();
+    });
+    await page.reload();
+    await page.waitForFunction(() => window.__game);
+    const after = await page.evaluate(() => window.__game.state());
+    check('save/load v3: Credits survive a real page.reload()', after.credits === before.credits && after.credits > 0, { before: before.credits, after: after.credits });
+    check('save/load v3: contractsCompleted survives a real page.reload()', after.contractsCompleted === before.contractsCompleted, { before: before.contractsCompleted, after: after.contractsCompleted });
+    check('save/load v3: active contracts (incl. in-progress amounts) survive a real page.reload()', after.contracts.length === before.contracts.length, { before: before.contracts, after: after.contracts });
+    check('save/load v3: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- Elevator Overpass (mechanics-spec.md §1.4)
+  // Two independent belt lines: Line A (ground, straight vertical) and Line B (crosses Line A at one cell via
+  // an explicit crossFlags array on connect()). Data-API precision first, then the same scenario driven through
+  // the real pointer/canvas UI (tapping onto an occupied belt cell mid-draw), including the Tier-2 gate.
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const exA = G.place('extractor', 2, 3, null, 1);
+      const smA = G.place('smelter', 2, 6, 'smelt_ferrite');
+      const connA = G.connect(exA, smA, 1, [[2, 4], [2, 5]]);
+      const exB = G.place('extractor', 6, 2, null, 1);
+      const smB = G.place('smelter', 0, 5, 'smelt_cuprite');
+      const pathB = [[6, 3], [6, 4], [6, 5], [5, 5], [4, 5], [3, 5], [2, 5], [1, 5]];
+      const crossB = [false, false, false, false, false, false, true, false];
+      const connB = G.connect(exB, smB, 1, pathB, undefined, crossB);
+      const crossingsAfterConnect = G.crossings();
+      const spliceAtCrossBlocked = G.place('splitter', 2, 5) === null;
+      // Let both lines actually run BEFORE splicing anything onto Line A below — splicing a building into the
+      // middle of a belt permanently restructures it into two new belt segments (see spliceOnBelt() in
+      // index.html), so "place a splitter mid-belt, then delete it" does NOT restore the original single belt
+      // (deleting the spliced node cascade-deletes both new segments, same as deleting any other building) —
+      // it's a one-way structural change, not a reversible probe. Capture the flow snapshot first.
+      G.tickN(30);
+      const st = G.state();
+      // Now it's safe to spend Line A: splice a Splitter onto a normal (non-crossing) ground cell of its path.
+      const spliceNormalId = G.place('splitter', 2, 4);
+      const beltBId = connB.ok.id;
+      G.deleteBelt(beltBId);
+      const crossingsAfterDeleteElevated = G.crossings();
+      const spliceWorksAfterDeleteElevated = G.place('splitter', 2, 5) !== null;
+      return {
+        connAOk: !!connA.ok, connBOk: !!connB.ok, crossingsAfterConnect,
+        spliceAtCrossBlocked, spliceNormalId: spliceNormalId !== null,
+        smAInBuf: st.nodes[smA].inBuf, smBInBuf: st.nodes[smB].inBuf,
+        smAOutBuf: st.nodes[smA].outBuf, smBOutBuf: st.nodes[smB].outBuf,
+        crossingsAfterDeleteElevated, spliceWorksAfterDeleteElevated,
+      };
+    });
+    check('elevator overpass: both a ground belt and a crossing belt connect without error', out.connAOk && out.connBOk, out);
+    check('elevator overpass: the crossing is registered exactly once, keyed to the crossing belt', Object.keys(out.crossingsAfterConnect).length === 1, out.crossingsAfterConnect);
+    check('elevator overpass: splicing a Splitter onto the crossing cell is blocked', out.spliceAtCrossBlocked, out);
+    check('elevator overpass: splicing a Splitter onto a normal (non-crossing) ground-belt cell still works', out.spliceNormalId, out);
+    check('elevator overpass: both lines actually flow goods to their destinations, undisturbed by the crossing', (out.smAInBuf.ferrite_ore + out.smAOutBuf.ferrite_ingot) > 0 && (out.smBInBuf.cuprite_ore + out.smBOutBuf.cuprite_ingot) > 0, { smA: [out.smAInBuf, out.smAOutBuf], smB: [out.smBInBuf, out.smBOutBuf] });
+    check('elevator overpass: deleting the crossing (elevated) belt clears its crossing registration', Object.keys(out.crossingsAfterDeleteElevated).length === 0, out.crossingsAfterDeleteElevated);
+    check('elevator overpass: the cell is splice-able again once the crossing belt is gone', out.spliceWorksAfterDeleteElevated, out);
+    check('elevator overpass: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // Deleting the GROUND belt at a crossing must leave the crossing (elevated belt) intact — the overpass has
+    // no idea what, if anything, is underneath it.
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const exA = G.place('extractor', 2, 3, null, 1), smA = G.place('smelter', 2, 6, 'smelt_ferrite');
+      G.connect(exA, smA, 1, [[2, 4], [2, 5]]);
+      const exB = G.place('extractor', 6, 2, null, 1), smB = G.place('smelter', 0, 5, 'smelt_cuprite');
+      const pathB = [[6, 3], [6, 4], [6, 5], [5, 5], [4, 5], [3, 5], [2, 5], [1, 5]];
+      const crossB = [false, false, false, false, false, false, true, false];
+      G.connect(exB, smB, 1, pathB, undefined, crossB);
+      G.tickN(3);
+      // find and delete Line A's ground belt at the crossing cell — Line A is the only belt whose OWN cell[][] claim sits at (2,5)
+      const beforeCount = G.state().belts.length, beforeCrossings = Object.keys(G.crossings()).length;
+      // Line A's belt is the one with 2 path cells (2,4)-(2,5), none flagged as crossings
+      const lineABelt = G.state().belts.find(b => b.len === 2 && !b.cross.some(Boolean));
+      return { beforeCount, beforeCrossings, lineABeltFound: !!lineABelt };
+    });
+    check('elevator overpass: setup sanity — one crossing registered before any deletion', out.beforeCrossings === 1, out);
+    check('elevator overpass: Line A (the ground belt under the crossing) is identifiable via state()', out.lineABeltFound, out);
+    check('elevator overpass: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // Real UI: draw a belt across another belt's cell. Blocked pre-Tier-2, works once Tier 2 is reached.
+    const { page, pageErrors } = await freshPage(browser);
+    async function clickCell(page, x, y) {
+      const p = await page.evaluate(([x, y]) => window.__game.cellPx(x, y), [x, y]);
+      const rect = await page.evaluate(() => { const r = document.getElementById('c').getBoundingClientRect(); return { left: r.left, top: r.top }; });
+      await page.mouse.click(rect.left + p.x, rect.top + p.y);
+    }
+    await page.click('[data-t="extractor"]');
+    await clickCell(page, 2, 3);
+    await page.click('#rpOpts .opt'); // T1
+    await page.click('[data-t="smelter"]');
+    await clickCell(page, 2, 6);
+    await page.click('#rpOpts .opt'); // smelt_ferrite (first recipe for this building type)
+    await page.click('[data-t="belt1"]');
+    await clickCell(page, 2, 3); await clickCell(page, 2, 4); await clickCell(page, 2, 5); await clickCell(page, 2, 6);
+    const lineAHint = await page.textContent('#hint');
+    const idsB = await page.evaluate(() => ({ exB: window.__game.place('extractor', 6, 2, null, 1), smB: window.__game.place('smelter', 0, 5, 'smelt_cuprite') }));
+    // Attempt Line B pre-Tier-2 — should be blocked exactly at the crossing cell.
+    await page.click('[data-t="belt1"]');
+    await clickCell(page, 6, 2); await clickCell(page, 6, 3); await clickCell(page, 6, 4); await clickCell(page, 6, 5);
+    await clickCell(page, 5, 5); await clickCell(page, 4, 5); await clickCell(page, 3, 5);
+    await clickCell(page, 2, 5); // the crossing cell, pre-Tier-2
+    const hintBlockedPreTier2 = await page.textContent('#hint');
+    const pathStillExcludesCrossCell = await page.evaluate(() => window.__game.uiState().beltPath.length === 6);
+    await page.click('[data-t="delete"]'); // abandon the in-progress draw
+    // Advance to Tier 2 via the data API (setup, not under test — same pattern as the rest of this suite).
+    await page.evaluate(() => {
+      const G = window.__game;
+      const term = G.place('terminal', 10, 6);
+      G.deliverToTerminal(term, 'ferrite_plate', 30); G.tickN(1);
+      G.deliverToTerminal(term, 'castcrete', 20); G.deliverToTerminal(term, 'ferrite_rod', 20); G.deliverToTerminal(term, 'braided_cable', 20); G.tickN(1);
+    });
+    const techTierNow = await page.evaluate(() => window.__game.state().techTier);
+    // Retry Line B post-Tier-2 — should succeed all the way through.
+    await page.click('[data-t="belt1"]');
+    await clickCell(page, 6, 2); await clickCell(page, 6, 3); await clickCell(page, 6, 4); await clickCell(page, 6, 5);
+    await clickCell(page, 5, 5); await clickCell(page, 4, 5); await clickCell(page, 3, 5);
+    await clickCell(page, 2, 5); // now succeeds as a crossing
+    const hintCrossingPostTier2 = await page.textContent('#hint');
+    await clickCell(page, 1, 5); await clickCell(page, 0, 5);
+    const hintFinal = await page.textContent('#hint');
+    await page.evaluate(() => window.__game.tickN(20));
+    const finalState = await page.evaluate(() => window.__game.state());
+    check('elevator overpass (real UI): Line A connects normally pre-Tier-2', /connected/i.test(lineAHint), lineAHint);
+    check('elevator overpass (real UI): crossing another belt is refused pre-Tier-2 with a clear Tier-2 message', /Tier 2/i.test(hintBlockedPreTier2), hintBlockedPreTier2);
+    check('elevator overpass (real UI): the blocked tap did not extend the in-progress path', pathStillExcludesCrossCell, pathStillExcludesCrossCell);
+    check('elevator overpass (real UI): reaches Tier 2 via the setup delivery', techTierNow === 2, techTierNow);
+    check('elevator overpass (real UI): tapping the same cell post-Tier-2 is accepted as a crossing', /Elevator Overpass/i.test(hintCrossingPostTier2), hintCrossingPostTier2);
+    check('elevator overpass (real UI): the belt finishes connecting at the destination', /connected/i.test(hintFinal), hintFinal);
+    check('elevator overpass (real UI): exactly one crossing is registered and both smelters receive real flow', finalState.crossingCount === 1, finalState.crossingCount);
+    check('elevator overpass (real UI): zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // Save/load: crossings and each belt's per-cell cross flags survive a real page.reload().
+    const { page, pageErrors } = await freshPage(browser);
+    const before = await page.evaluate(() => {
+      const G = window.__game;
+      const exA = G.place('extractor', 2, 3, null, 1), smA = G.place('smelter', 2, 6, 'smelt_ferrite');
+      G.connect(exA, smA, 1, [[2, 4], [2, 5]]);
+      const exB = G.place('extractor', 6, 2, null, 1), smB = G.place('smelter', 0, 5, 'smelt_cuprite');
+      const pathB = [[6, 3], [6, 4], [6, 5], [5, 5], [4, 5], [3, 5], [2, 5], [1, 5]];
+      const crossB = [false, false, false, false, false, false, true, false];
+      G.connect(exB, smB, 1, pathB, undefined, crossB);
+      G.tickN(3);
+      G.saveGame();
+      return G.state();
+    });
+    await page.reload();
+    await page.waitForFunction(() => window.__game);
+    const after = await page.evaluate(() => window.__game.state());
+    check('elevator overpass save/load: crossingCount survives a real page.reload()', after.crossingCount === before.crossingCount && after.crossingCount === 1, { before: before.crossingCount, after: after.crossingCount });
+    check('elevator overpass save/load: belt count and per-belt cross arrays survive a real page.reload()', after.belts.length === before.belts.length && JSON.stringify(after.belts.map(b => b.cross)) === JSON.stringify(before.belts.map(b => b.cross)), { before: before.belts.map(b => b.cross), after: after.belts.map(b => b.cross) });
+    check('elevator overpass save/load: zero page errors', pageErrors.length === 0, pageErrors);
     await page.close();
   }
 

@@ -38,29 +38,61 @@
   .tool.active{border-color:var(--accent);color:var(--accent);background:#16242a;}
   .tool small{display:block;font-weight:400;color:var(--dim);font-size:9.5px;margin-top:1px;}
   .tool:disabled{opacity:.4;cursor:not-allowed;}
-  #recipePick{position:absolute;inset:0;background:rgba(8,10,14,.72);display:none;align-items:center;justify-content:center;}
-  #recipePick.show{display:flex;}
-  #recipePick .card{background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;padding:14px;width:min(320px,90%);}
-  #recipePick h4{margin:0 0 10px;font-size:13px;}
-  #recipePick .opt{display:block;width:100%;text-align:left;background:#16242a;border:1px solid var(--panel-border);
+  .modalOverlay{position:absolute;inset:0;background:rgba(8,10,14,.72);display:none;align-items:center;justify-content:center;z-index:5;}
+  .modalOverlay.show{display:flex;}
+  .modalOverlay .card{background:var(--panel);border:1px solid var(--panel-border);border-radius:12px;padding:14px;width:min(320px,90%);max-height:80%;overflow:auto;}
+  .modalOverlay h4{margin:0 0 10px;font-size:13px;}
+  .modalOverlay .opt{display:block;width:100%;text-align:left;background:#16242a;border:1px solid var(--panel-border);
     border-radius:8px;padding:9px 11px;margin-bottom:7px;color:var(--text);font-size:12px;cursor:pointer;}
-  #recipePick .opt:hover{border-color:var(--accent);}
-  #recipePick .opt .rt{color:var(--dim);font-size:10.5px;margin-top:2px;}
-  #recipePick .cancel{color:var(--dim);font-size:11px;background:none;border:none;cursor:pointer;margin-top:2px;}
+  .modalOverlay .opt:hover{border-color:var(--accent);}
+  .modalOverlay .opt .rt{color:var(--dim);font-size:10.5px;margin-top:2px;}
+  .modalOverlay .cancel{color:var(--dim);font-size:11px;background:none;border:none;cursor:pointer;margin-top:2px;}
+  .modalOverlay .infoRow{display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:11.5px;}
+  .modalOverlay .infoRow .k{color:var(--dim);}
+  .modalOverlay .infoSec{margin-top:8px;font-size:10.5px;color:var(--accent);letter-spacing:.03em;}
+  .modalOverlay .warnNote{color:var(--warn);font-size:10.5px;margin:4px 0 8px;}
+  #tierPanel{position:absolute;top:8px;left:8px;width:210px;max-height:70%;overflow:auto;
+    background:rgba(13,16,21,.95);border:1px solid var(--accent);border-radius:10px;
+    padding:10px 12px;font-size:11px;line-height:1.45;display:none;}
+  #tierPanel.show{display:block;}
+  #tierPanel h3{margin:0 0 6px;font-size:11px;color:var(--accent);letter-spacing:.03em;}
+  #tierPanel .r{display:flex;justify-content:space-between;gap:8px;padding:1px 0;}
+  #tierPanel .r .k{color:var(--dim);}
+  #tierPanel .b{color:var(--text);font-weight:600;margin-top:6px;}
+  #tierPanel .sub{color:var(--dim);font-size:10px;margin-top:2px;}
+  header .tier{cursor:pointer;text-decoration:underline dotted;}
+  header .credits{font-size:12px;color:#e0c25c;font-variant-numeric:tabular-nums;margin-left:8px;}
+  #contractsPanel{position:absolute;top:8px;right:8px;width:230px;max-height:70%;overflow:auto;
+    background:rgba(13,16,21,.95);border:1px solid #e0c25c;border-radius:10px;
+    padding:10px 12px;font-size:11px;line-height:1.45;display:none;}
+  #contractsPanel.show{display:block;}
+  #contractsPanel h3{margin:0 0 6px;font-size:11px;color:#e0c25c;letter-spacing:.03em;}
+  #contractsPanel .b{color:var(--text);font-weight:600;margin-top:6px;}
+  #contractsPanel .r{display:flex;justify-content:space-between;gap:8px;padding:1px 0;}
+  #contractsPanel .r .k{color:var(--dim);}
+  #contractsPanel .sub{color:var(--dim);font-size:10px;margin-top:2px;}
+  #prestigeBtn{margin-left:6px;background:none;border:1px solid #8f7fe0;color:#8f7fe0;border-radius:6px;font-size:10px;padding:3px 7px;cursor:pointer;}
+  #prestigeBtn:disabled{opacity:.35;cursor:not-allowed;border-color:var(--panel-border);color:var(--dim);}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <h1>Line Balance</h1><span class="tier" id="tierLbl">Tier 1 · Flow</span>
+    <h1>Line Balance</h1><span class="tier" id="tierLbl" title="Tap for tier progress">Tier 0 · Boot</span>
+    <span class="credits" id="creditsLbl" title="Credits — earned by completing Contracts">💰 0</span>
     <span class="power" id="powerLbl">⚡ 0</span>
+    <button id="prestigeBtn" title="Reset the factory for a permanent production boost (unlocks once every tier is complete)" disabled>Prestige</button>
     <button id="newGameBtn" title="Start a new game (clears save)" style="margin-left:6px;background:none;border:1px solid var(--panel-border);color:var(--dim);border-radius:6px;font-size:10px;padding:3px 7px;cursor:pointer;">New</button>
   </header>
   <div id="stage-wrap">
     <canvas id="c"></canvas>
     <div id="analyze"><h3>ANALYZE</h3><div id="analyzeBody"></div></div>
+    <div id="tierPanel"><h3>TIER PROGRESS</h3><div id="tierPanelBody"></div></div>
+    <div id="contractsPanel"><h3>CONTRACTS</h3><div id="contractsPanelBody"></div></div>
     <div id="hint">Tap <b>Extractor</b>, then tap a faint ore deposit to place it. Then add a Smelting Furnace and Fabricator, and connect them with Belts.</div>
-    <div id="recipePick"><div class="card"><h4 id="rpTitle">Choose recipe</h4><div id="rpOpts"></div><button class="cancel" id="rpCancel">cancel</button></div></div>
+    <div id="recipePick" class="modalOverlay"><div class="card"><h4 id="rpTitle">Choose recipe</h4><div id="rpOpts"></div><button class="cancel" id="rpCancel">cancel</button></div></div>
+    <div id="infoModal" class="modalOverlay"><div class="card"><h4 id="infoTitle">Building</h4><div id="infoBody"></div><div id="infoActions"></div><button class="cancel" id="infoCancel">close</button></div></div>
+    <div id="goodPick" class="modalOverlay"><div class="card"><h4 id="gpTitle">Choose good to send</h4><div id="gpOpts"></div><button class="cancel" id="gpCancel">cancel</button></div></div>
   </div>
   <footer id="palette"></footer>
 </div>
@@ -104,12 +136,93 @@ const RECIPES={
 const rpm=(qty,sec)=>qty*60/sec*CFG.rateScale;                 // units/min in scaled world
 const POWER={extractor:100,smelter:140,fabricator:140};        // kW while working (design values)
 
+// Tech-tier turn-in schedule — placeholder, adapted from Satisfactory's real milestone tree (Tier 1
+// "Logistics" unlocks Splitter+Merger together; "Field Research" unlocks the Object Scanner, same tier;
+// Tier 2 "Logistics Mk.2" unlocks Belt Mk.2) mapped onto this game's own Act-1 materials/building set and
+// compressed to 3 tiers. Pavel: swap these numbers out once real balancing starts — see mechanics-spec.md.
+// Tier 1 is deliberately a SINGLE good, reachable from just the one starter deposit with a plain
+// extractor->smelter->fabricator->terminal chain and no Splitter/Merger/2nd-ore-type needed — this mirrors
+// real Satisfactory's own HUB Upgrade 1 (10x Iron Rod, one item, before copper is even reachable) and fixes
+// a real softlock an earlier draft of this schedule had: it required Braided Cable (a copper/Cuprite-chain
+// good) simultaneously with Tier 1, but Scanning (needed to ever find a Cuprite deposit) was ALSO gated
+// behind Tier 1 — an unwinnable circular dependency. Scanning is now unlocked from the very start (matching
+// Satisfactory's Resource Scanner, which is likewise available before any HUB Upgrade), and multi-good/
+// multi-ore requirements only start at Tier 2, by which point Splitter/Merger (unlocked at Tier 1) make it
+// practical to branch one smelter's output across two fabricators, and there's been time to scan for copper
+// and limestone deposits.
+const TIERS=[
+  { name:"Flow",   need:[["ferrite_plate",30]],                                          unlocks:["splitter","merger"], unlockLabel:"Splitter, Merger" },
+  { name:"Scale",  need:[["castcrete",20],["ferrite_rod",20],["braided_cable",20]],       unlocks:["belt2","storageroom","extractor2"], unlockLabel:"Belt T2, Storage Room, Extractor T2" },
+  { name:"Frames", need:[["braided_cable",10],["bolts",10],["filament",10]],              unlocks:["extractor3"], unlockLabel:"Extractor T3" },
+];
+const TOOL_UNLOCK_TIER={splitter:1,merger:1,belt2:2,storageroom:2,smart_splitter:2,elevator:2}; // scan is NOT here — always unlocked, see note above
+const EXTRACTOR_TIER_UNLOCK={1:0,2:2,3:3}; // extractor tier -> techTier required
+function tierUnlocked(tool){ const req=TOOL_UNLOCK_TIER[tool]; return req===undefined?true:techTier>=req; }
+function currentTierNeed(){ return techTier<TIERS.length?TIERS[techTier].need:[]; }
+function terminalAcceptGoods(){ return [...new Set([...currentTierNeed().map(x=>x[0]), ...contracts.map(c=>c.good)])]; }
+function advanceTier(){ const done=TIERS[techTier]; techTier++; tierProgress={};
+  for(const id in nodes){ const b=nodes[id]; if(b.type==="terminal"){ const keep={}; for(const g of terminalAcceptGoods())keep[g]=b.inBuf[g]||0; b.inBuf=keep; } }
+  buildPalette();
+  setHint(`✅ Tier ${techTier} complete — ${done.unlockLabel} unlocked!`,"ok"); }
+
+// ---------------------------------------------------------------- CONTRACTS + PRESTIGE (2026-07-21, fourth session)
+// Contracts are hand-authored side quotas for goods the player is already producing (per preproduction-plan.md
+// §3's "5-8 hand-authored contracts" + Salvage-Drive-adjacent reward idea, scoped down since Dispatch Dock/R&D
+// Bench aren't built yet). Deliberately reuse the Assembly Terminal instead of a new building: once a good's
+// CURRENT-TIER quota is met, any further delivery of that good used to just sit unconsumed in the terminal's
+// buffer (see the tier-delivery comment in sim() below) — contracts now claim exactly that leftover surplus,
+// which ties neatly into the game's own "surplus isn't wasted" theme instead of adding a whole new sink building.
+const CONTRACT_POOL=[ // id, good, qty, reward (Credits) — placeholder numbers, Pavel's to rebalance like everything else
+  {id:"c1",good:"ferrite_plate",qty:40,reward:20},
+  {id:"c2",good:"ferrite_rod",qty:30,reward:18},
+  {id:"c3",good:"bolts",qty:60,reward:22},
+  {id:"c4",good:"braided_cable",qty:25,reward:24},
+  {id:"c5",good:"castcrete",qty:35,reward:20},
+  {id:"c6",good:"filament",qty:30,reward:20},
+  {id:"c7",good:"cuprite_ingot",qty:50,reward:16},
+  {id:"c8",good:"ferrite_ingot",qty:60,reward:16},
+];
+const CONTRACT_SLOTS=2;
+function fillContractSlots(){
+  while(contracts.length<CONTRACT_SLOTS){
+    const activeIds=new Set(contracts.map(c=>c.poolId));
+    const candidate=CONTRACT_POOL.find(p=>!activeIds.has(p.id));
+    if(!candidate)break; // every pool entry is already active (rare with 8 entries / 2 slots) — just run with fewer slots filled
+    contracts.push({poolId:candidate.id,good:candidate.good,qty:candidate.qty,reward:candidate.reward,progress:0});
+    for(const id in nodes){ const b=nodes[id]; if(b.type==="terminal"&&!(candidate.good in b.inBuf))b.inBuf[candidate.good]=0; }
+  }
+}
+// Prestige: full factory reset in exchange for a small permanent production multiplier, applied once at each
+// extractor's placement (baked into b.rate, same as richness/tier already are — no per-tick lookup needed).
+// Unlock condition is a PLACEHOLDER: gated on clearing every currently-built tier (there's no capstone item yet
+// to gate it on properly, unlike the "ship a showpiece part, then Prestige" endgame preproduction-plan.md
+// describes) — move this once a real capstone tier exists. Credits and prestige count persist across a
+// Prestige reset (that's the whole point); a "New Game" (clearing the save entirely) wipes those too.
+const PRESTIGE_MULT_PER_LEVEL=0.10; // +10% extractor rate per prestige level — placeholder, tunable
+function prestigeMult(){ return 1+PRESTIGE_MULT_PER_LEVEL*prestigeCount; }
+function prestigeEligible(){ return techTier>=TIERS.length; }
+function wipeFactory(){
+  cell=Array.from({length:GH},()=>Array(GW).fill(null));
+  deposits=[]; nodes={}; belts=[]; nextId=1; crossings={};
+  battery=CFG.batteryCap; techTier=0; tierProgress={}; lifetimeDelivered=0; brownout=false;
+  contracts=[];
+  seedDeposits();
+  fillContractSlots();
+}
+function doPrestige(){
+  if(!prestigeEligible())return{err:"Complete every tier first, then Prestige unlocks."};
+  prestigeCount++;
+  wipeFactory();
+  return{ok:true,prestigeCount,mult:prestigeMult()};
+}
+
 const BUILD={
   extractor:{label:"Extractor",sub:"on deposit",color:"#d9a441"},
   smelter:{label:"Smelt. Furnace",sub:"1→1 ingot",color:"#e0864a"},
   fabricator:{label:"Fabricator",sub:"1 part",color:"#4fd1c5"},
   splitter:{label:"Splitter",sub:"1→3",color:"#8f7fe0"},
-  merger:{label:"Merger",sub:"3→1",color:"#4fb3e0"},
+  merger:{label:"Merger",sub:"3→1 same good",color:"#4fb3e0"},
+  smart_splitter:{label:"Smart Splitter",sub:"multi-good combiner",color:"#e07a9e"},
   storageroom:{label:"Storage Room",sub:"buffer",color:"#7a8a99"},
   terminal:{label:"Assembly Terminal",sub:"deliver",color:"#4fd17a"},
   generator:{label:"Generator",sub:"tap: +"+CFG.genPerClick+"kW",color:"#c8b04a"},
@@ -117,41 +230,45 @@ const BUILD={
 
 // ---------------------------------------------------------------- GRID / WORLD
 const GW=16, GH=11;            // grid cells
-let cell, deposits, nodes, belts, nextId, battery, delivered, quota, targetGood, brownout;
-function reset(){
-  cell=Array.from({length:GH},()=>Array(GW).fill(null)); // {t:'dep'|'bld'|'belt', ...}
-  deposits=[]; nodes={}; belts=[]; nextId=1;
-  battery=CFG.batteryCap; delivered=0; quota=40; targetGood="ferrite_plate"; brownout=false;
-  seedDeposits();
+let cell, deposits, nodes, belts, nextId, battery, techTier, tierProgress, lifetimeDelivered, brownout;
+let contracts, credits, contractsCompleted, prestigeCount;
+let crossings; // Elevator Overpass — {"[y*GW+x]": beltId} for cells where a belt crosses over another belt's cell, mechanics-spec.md §1.4
+function reset(){ // full wipe, incl. Credits/prestige — this is the "New Game" reset, distinct from Prestige (see wipeFactory/doPrestige below)
+  credits=0; contractsCompleted=0; prestigeCount=0;
+  wipeFactory();
 }
 function seedDeposits(){
   const seed=[[2,3,"ferrite_ore",1],[3,7,"ferrite_ore",2],[6,2,"cuprite_ore",1],
               [11,8,"ferrite_ore",2],[13,4,"cuprite_ore",1],[8,9,"chalkstone",1]];
-  for(const[x,y,g,r]of seed){ const d={x,y,good:g,rich:r}; deposits.push(d); cell[y][x]={t:"dep",d}; }
+  seed.forEach(([x,y,g,r],i)=>{ const d={x,y,good:g,rich:r,discovered:i===0}; deposits.push(d); cell[y][x]={t:"dep",d}; }); // only the first deposit starts known — the rest need Scanning
 }
+function revealDeposit(d){ d.discovered=true; }
+function scanRegion(x1,y1,x2,y2){ const lo_x=Math.min(x1,x2),hi_x=Math.max(x1,x2),lo_y=Math.min(y1,y2),hi_y=Math.max(y1,y2);
+  let n=0; for(const d of deposits){ if(!d.discovered && d.x>=lo_x&&d.x<=hi_x&&d.y>=lo_y&&d.y<=hi_y){ revealDeposit(d); n++; } } return n; }
 // ---------------------------------------------------------------- NODES
 function makeNode(type,x,y,recipeId,tier){
   const id=nextId++, b={id,type,x,y,recipeId:recipeId||null,
     inBuf:{},outBuf:{},util:0,working:false,stalled:false,
     inBelt:{},outBelt:{}}; // per-good belt refs (strict ports)
   if(type==="extractor"){ const d=cell[y][x].d; b.good=d.good; b.tier=tier||1;
-    b.rate=CFG.richness[d.rich-1]*CFG.extractorMult[b.tier-1]; b.outBuf[d.good]=0; }
+    b.rate=CFG.richness[d.rich-1]*CFG.extractorMult[b.tier-1]*prestigeMult(); b.outBuf[d.good]=0; }
   if(type==="smelter"||type==="fabricator"){ const r=RECIPES[recipeId];
     r.in.forEach(([g])=>b.inBuf[g]=0); r.out.forEach(([g])=>b.outBuf[g]=0); }
   if(type==="splitter"||type==="merger"||type==="storageroom"){ b.good=null; b.buf=0; }
-  if(type==="terminal"){ b.inBuf[targetGood]=0; }
+  if(type==="smart_splitter"){ b.buf={}; } // per-good buckets — unlike Merger, accepts up to 3 DIFFERENT goods on its inputs
+  if(type==="terminal"){ for(const g of terminalAcceptGoods())b.inBuf[g]=0; }
   nodes[id]=b; cell[y][x]={t:"bld",id}; return b;
 }
 // ports: how many belts a node accepts
-function inGoods(b){ if(b.type==="extractor")return[]; if(b.type==="splitter")return["*"]; if(b.type==="merger")return["*","*","*"]; if(b.type==="storageroom")return["*"]; if(b.type==="terminal")return[targetGood];
+function inGoods(b){ if(b.type==="extractor")return[]; if(b.type==="splitter")return["*"]; if(b.type==="merger")return["*","*","*"]; if(b.type==="smart_splitter")return["*","*","*"]; if(b.type==="storageroom")return["*"]; if(b.type==="terminal")return terminalAcceptGoods();
   return RECIPES[b.recipeId].in.map(x=>x[0]); }
 function outGoods(b){ if(b.type==="terminal"||b.type==="generator")return[]; if(b.type==="extractor")return[b.good];
-  if(b.type==="splitter")return["*","*","*"]; if(b.type==="merger")return[b.good]; if(b.type==="storageroom")return[b.good]; return RECIPES[b.recipeId].out.map(x=>x[0]); }
+  if(b.type==="splitter")return["*","*","*"]; if(b.type==="merger")return[b.good]; if(b.type==="smart_splitter")return["*","*","*"]; if(b.type==="storageroom")return[b.good]; return RECIPES[b.recipeId].out.map(x=>x[0]); }
 function outBeltCount(b){ return belts.filter(be=>be.src===b.id).length; }
 function inBeltCount(b){ return belts.filter(be=>be.dst===b.id).length; }
 
 // ---------------------------------------------------------------- SIM
-function roomFor(b,g){ if(b.type==="terminal")return 1e9; if(b.type==="splitter"||b.type==="merger")return CAP-(b.buf||0); if(b.type==="storageroom")return BIGCAP-(b.buf||0); return CAP-(b.inBuf[g]||0); }
+function roomFor(b,g){ if(b.type==="terminal")return 1e9; if(b.type==="splitter"||b.type==="merger")return CAP-(b.buf||0); if(b.type==="smart_splitter")return CAP-((b.buf&&b.buf[g])||0); if(b.type==="storageroom")return BIGCAP-(b.buf||0); return CAP-(b.inBuf[g]||0); }
 function sim(dt){
   // 1. extractors + machines
   let demand=0;
@@ -184,9 +301,11 @@ function sim(dt){
     const s=nodes[be.src], d=nodes[be.dst];
     if(s.type==="splitter")continue; // handled below
     if(d.type==="merger")continue; // handled below (supply-weighted pull)
-    const g=be.good; const avail=(s.type==="merger"||s.type==="storageroom")?(s.buf||0):(s.outBuf[g]||0); const room=roomFor(d,g);
+    const g=be.good;
+    const avail=(s.type==="merger"||s.type==="storageroom")?(s.buf||0):(s.type==="smart_splitter")?((s.buf&&s.buf[g])||0):(s.outBuf[g]||0);
+    const room=roomFor(d,g);
     const move=Math.min(be.cap*dt/60, avail, room);
-    if(move>0){ if(s.type==="merger"||s.type==="storageroom")s.buf-=move; else s.outBuf[g]-=move; addIn(d,g,move); flow(be,move,dt); } else flow(be,0,dt);
+    if(move>0){ if(s.type==="merger"||s.type==="storageroom")s.buf-=move; else if(s.type==="smart_splitter")s.buf[g]-=move; else s.outBuf[g]-=move; addIn(d,g,move); flow(be,move,dt); } else flow(be,0,dt);
   }
   // mergers: pull from up to 3 inputs proportional to each input's available supply (mechanics-spec.md 1.5 — symmetric dual of the splitter)
   for(const mid in mergerIn){ const m=nodes[mid]; const ins=mergerIn[mid];
@@ -211,14 +330,27 @@ function sim(dt){
     for(let i=0;i<outs.length;i++){ const share=totalRoom>0?avail*rooms[i]/totalRoom:0;
       if(share>0){ s.buf-=share; addIn(nodes[outs[i].dst],g,share); flow(outs[i],share,dt);} else flow(outs[i],0,dt); }
   }
-  // 3. terminal delivery
-  for(const id in nodes){ const b=nodes[id]; if(b.type==="terminal"){ const g=targetGood;
-    if(b.inBuf[g]>0){ delivered+=b.inBuf[g]; b.inBuf[g]=0; } } }
+  // 3. terminal delivery — multi-good turn-in toward the current tier's requirement
+  const need=currentTierNeed();
+  for(const id in nodes){ const b=nodes[id]; if(b.type==="terminal"){
+    for(const[g,q]of need){ if(b.inBuf[g]>0){ const room=Math.max(0,q-(tierProgress[g]||0)); const take=Math.min(b.inBuf[g],room);
+      if(take>0){ tierProgress[g]=(tierProgress[g]||0)+take; lifetimeDelivered+=take; }
+      b.inBuf[g]-=take; /* anything beyond what the tier still needs falls through to contracts, below */ } }
+    // contracts: whatever's left of a good AFTER the tier's own need is satisfied claims against active contracts —
+    // this is deliberately the same "surplus" that used to just sit unconsumed in the buffer (see comment above)
+    for(const c of contracts){ if(b.inBuf[c.good]>0){ const room=Math.max(0,c.qty-c.progress); const take=Math.min(b.inBuf[c.good],room);
+      if(take>0){ c.progress+=take; lifetimeDelivered+=take; }
+      b.inBuf[c.good]-=take; } }
+  } }
+  if(techTier<TIERS.length&&need.every(([g,q])=>(tierProgress[g]||0)>=q))advanceTier();
+  for(let i=contracts.length-1;i>=0;i--){ const c=contracts[i]; if(c.progress>=c.qty){ credits+=c.reward; contractsCompleted++; contracts.splice(i,1); } }
+  if(contracts.length<CONTRACT_SLOTS)fillContractSlots();
   // 4. sprites advance
   for(const be of belts) advSprites(be,dt);
 }
 function anyInput(b,r){ return r.in.every(([g,q])=>(b.inBuf[g]||0)>=q-1e-9); }
-function addIn(d,g,amt){ if(d.type==="splitter"||d.type==="merger"||d.type==="storageroom"){ if(!d.good)d.good=g; d.buf=(d.buf||0)+amt; }
+function addIn(d,g,amt){ if(d.type==="smart_splitter"){ d.buf[g]=(d.buf[g]||0)+amt; }
+  else if(d.type==="splitter"||d.type==="merger"||d.type==="storageroom"){ if(!d.good)d.good=g; d.buf=(d.buf||0)+amt; }
   else d.inBuf[g]=(d.inBuf[g]||0)+amt; }
 function powerScale(kw,dt,demand){ if(CFG.autoPower)return{f:1,d:demand};
   const need=kw*dt/60; if(battery>=demand+need)return{f:1,d:demand+need};
@@ -247,43 +379,142 @@ function routeBetween(a,b){ // BFS through empty cells from a neighbor of a to a
     for(const[nx,ny]of neighbors(x,y)){ const nk=ny*GW+nx; if(seen.has(nk)||!isEmpty(nx,ny))continue; seen.add(nk); prev[nk]=k; q.push([nx,ny]); } }
   return null;
 }
-function connect(srcId,dstId,tier){ const s=nodes[srcId], d=nodes[dstId]; if(!s||!d)return{err:"missing"}; tier=(tier===2)?2:1;
+function adj(x1,y1,x2,y2){ return Math.abs(x1-x2)+Math.abs(y1-y2)===1; }
+function validExplicitPath(s,d,path,crossFlags){ // player-drawn path: every cell empty (or, if flagged, a valid Elevator Overpass crossing over an existing belt), step-by-step adjacent from s to d
+  if(path.length===0)return adj(s.x,s.y,d.x,d.y);
+  if(!adj(s.x,s.y,path[0][0],path[0][1]))return false;
+  for(let i=1;i<path.length;i++){ if(!adj(path[i-1][0],path[i-1][1],path[i][0],path[i][1]))return false; }
+  const last=path[path.length-1]; if(!adj(last[0],last[1],d.x,d.y))return false;
+  for(let i=0;i<path.length;i++){ const[x,y]=path[i];
+    if(crossFlags&&crossFlags[i]){ const c=cell[y][x]; if(!c||c.t!=="belt")return false; if(crossings[y*GW+x])return false; }
+    else{ if(!isEmpty(x,y))return false; }
+  }
+  return true;
+}
+function connect(srcId,dstId,tier,explicitPath,forcedGood,crossFlags){ const s=nodes[srcId], d=nodes[dstId]; if(!s||!d)return{err:"missing"}; tier=(tier===2)?2:1;
   // determine good
   let good=null;
   const outs=outGoods(s);
-  if(s.type==="splitter"||s.type==="merger"||s.type==="storageroom"){ good=s.good; } else if(s.type==="extractor"){ good=s.good; }
+  if(s.type==="smart_splitter"){
+    // Smart Splitter can hold several DIFFERENT goods at once (see mechanics-spec.md — Smart Splitter),
+    // so unlike Splitter/Merger there's no single s.good; the output good must be picked explicitly.
+    if(forcedGood){ good=forcedGood; }
+    else{
+      const claimed=new Set(Object.keys(s.outBelt||{}).filter(g=>s.outBelt[g]));
+      const candidates=[...new Set(belts.filter(be=>be.dst===s.id).map(be=>be.good))].filter(g=>!claimed.has(g));
+      if(candidates.length===1)good=candidates[0];
+      else if(candidates.length===0)return{err:"Smart Splitter has no unclaimed input good yet — connect an input first"};
+      else return{err:"AMBIGUOUS_GOOD",candidates};
+    }
+  }
+  else if(s.type==="splitter"||s.type==="merger"||s.type==="storageroom"){ good=s.good; } else if(s.type==="extractor"){ good=s.good; }
   else { // machine: pick an output good not already fully occupied
     for(const g of RECIPES[s.recipeId].out.map(x=>x[0])){ if(!s.outBelt[g]){ good=g; break; } }
   }
   // strict-port checks
   if(s.type==="splitter"){ if(outBeltCount(s)>=3)return{err:"Splitter already has 3 outputs"}; }
+  else if(s.type==="smart_splitter"){ if(outBeltCount(s)>=3)return{err:"Smart Splitter already has 3 outputs"}; if(good&&s.outBelt[good])return{err:"That good already has an output port"}; }
   else if(s.type!=="extractor"){ if(good&&s.outBelt[good])return{err:"Output port already used"}; }
   else { if(s.outBelt[good])return{err:"Extractor output already used"}; }
   if(!good)return{err:"No free output port"};
   // dest accept
-  if(d.type==="terminal"){ if(good!==targetGood)return{err:"Terminal wants "+ITEMS[targetGood].n}; }
+  if(d.type==="terminal"){ const acceptable=terminalAcceptGoods(); if(!acceptable.includes(good))return{err:(techTier>=TIERS.length&&contracts.length===0)?"Terminal has nothing to deliver right now":"Terminal doesn't need "+ITEMS[good].n+" right now (not this tier, and no active contract wants it)"}; if(d.inBelt[good])return{err:"That input port is used"}; }
   else if(d.type==="splitter"){ if(inBeltCount(d)>=1)return{err:"Splitter input already used"}; if(d.good&&d.good!==good)return{err:"Splitter carries "+ITEMS[d.good].n}; }
-  else if(d.type==="merger"){ if(inBeltCount(d)>=3)return{err:"Merger already has 3 inputs"}; if(d.good&&d.good!==good)return{err:"Merger carries "+ITEMS[d.good].n}; }
+  else if(d.type==="merger"){ if(inBeltCount(d)>=3)return{err:"Merger already has 3 inputs"}; if(d.good&&d.good!==good)return{err:"Merger carries "+ITEMS[d.good].n+" — Mergers only combine matching goods. For different goods, route them separately or use a Smart Splitter."}; }
+  else if(d.type==="smart_splitter"){ if(inBeltCount(d)>=3)return{err:"Smart Splitter already has 3 inputs"}; }
   else if(d.type==="storageroom"){ if(inBeltCount(d)>=1)return{err:"Storage Room input already used"}; if(d.good&&d.good!==good)return{err:"Storage Room carries "+ITEMS[d.good].n}; }
   else if(d.type==="extractor"||d.type==="generator"){ return{err:"Can't feed that"}; }
   else { const ing=RECIPES[d.recipeId].in.map(x=>x[0]); if(!ing.includes(good))return{err:ITEMS[good].n+" isn't an input here"}; if(d.inBelt[good])return{err:"That input port is used"}; }
-  const path=routeBetween(s,d); if(!path)return{err:"No clear belt path — route around, or move a machine"};
-  const be={id:nextId++,src:srcId,dst:dstId,good,path,sprites:[],flow:0,tier,cap:CFG.beltCap["t"+tier]};
-  for(const[x,y]of path)cell[y][x]={t:"belt",id:be.id};
+  let path;
+  if(explicitPath){ if(!validExplicitPath(s,d,explicitPath,crossFlags))return{err:"That belt path isn't valid anymore — try drawing it again"}; path=explicitPath; }
+  else { path=routeBetween(s,d); if(!path)return{err:"No clear belt path — route around, or move a machine"}; }
+  const cross=crossFlags?crossFlags.slice():path.map(()=>false);
+  const be={id:nextId++,src:srcId,dst:dstId,good,path,cross,sprites:[],flow:0,tier,cap:CFG.beltCap["t"+tier]};
+  for(let i=0;i<path.length;i++){ const[x,y]=path[i];
+    if(cross[i]){ crossings[y*GW+x]=be.id; } else { cell[y][x]={t:"belt",id:be.id}; } } // Elevator Overpass: a crossing cell keeps the belt underneath as ground-owner; this belt just registers as passing over it
   belts.push(be);
   if(s.type==="splitter"){} else s.outBelt[good]=be.id;
-  if(d.type==="splitter"){d.good=good;} else if(d.type==="merger"||d.type==="storageroom"){ if(!d.good)d.good=good; } else if(d.type!=="terminal")d.inBelt[good]=be.id;
+  if(d.type==="splitter"){d.good=good;} else if(d.type==="merger"||d.type==="storageroom"){ if(!d.good)d.good=good; } else d.inBelt[good]=be.id;
   return{ok:be};
 }
 
 // ---------------------------------------------------------------- PLACEMENT
 function canPlace(type,x,y){ const c=cell[y][x];
-  if(type==="extractor")return c&&c.t==="dep";
+  if(type==="extractor")return c&&c.t==="dep"&&c.d.discovered;
+  if(type==="splitter"||type==="merger"||type==="smart_splitter")return !c||(c.t==="belt"&&!crossings[y*GW+x]); // these may also be spliced onto an existing belt, but not where an Elevator Overpass crosses it
   return !c; }
+function spliceOnBelt(type,x,y){ // insert a Splitter/Merger into the middle of an existing belt, splitting it in two
+  const c=cell[y][x]; if(!c||c.t!=="belt")return null;
+  if(crossings[y*GW+x])return null; // an overpass crosses this cell — can't splice a building in mid-air
+  const be=belts.find(b=>b.id===c.id); if(!be)return null;
+  const idx=be.path.findIndex(([px,py])=>px===x&&py===y); if(idx<0)return null;
+  const beCross=be.cross||be.path.map(()=>false);
+  if(beCross[idx])return null; // this cell is itself an elevated segment of `be` — can't splice mid-air
+  const origDstId=be.dst, good=be.good, tier=be.tier, cap=be.cap;
+  const beforePath=be.path.slice(0,idx), beforeCross=beCross.slice(0,idx);
+  const afterPath=be.path.slice(idx+1), afterCross=beCross.slice(idx+1);
+  for(let i=0;i<be.path.length;i++){ if(!beCross[i]){ const[px,py]=be.path[i]; cell[py][px]=null; } } // clear only the cells `be` actually claimed as ground — crossing cells belong to a different belt's ground and are left untouched
+  const node=makeNode(type,x,y);
+  // before-segment reuses the original belt's id/src, now ending at the new node
+  be.dst=node.id; be.path=beforePath; be.cross=beforeCross; be.sprites=[];
+  for(let i=0;i<beforePath.length;i++){ if(!beforeCross[i]){ const[px,py]=beforePath[i]; cell[py][px]={t:"belt",id:be.id}; } }
+  // after-segment is a fresh belt from the new node to the original destination
+  const afterBelt={id:nextId++,src:node.id,dst:origDstId,good,path:afterPath,cross:afterCross,sprites:[],flow:0,tier,cap};
+  belts.push(afterBelt);
+  for(let i=0;i<afterPath.length;i++){ if(!afterCross[i]){ const[px,py]=afterPath[i]; cell[py][px]={t:"belt",id:afterBelt.id}; } }
+  node.good=good; if(node.type==="smart_splitter")node.buf[good]=0;
+  if(node.type!=="splitter")node.outBelt[good]=afterBelt.id; // fixes a latent gap: connect() normally sets this, but splicing builds the belt directly
+  const origDst=nodes[origDstId];
+  if(origDst&&origDst.type!=="splitter"&&origDst.type!=="merger"&&origDst.type!=="storageroom"&&origDst.type!=="terminal"){ origDst.inBelt[good]=afterBelt.id; }
+  // origSrc's outBelt[good] already correctly points at `be.id`, which is unchanged — no update needed there.
+  // Port counts (inBeltCount/outBeltCount) are derived live from the belts array, so the spliced node
+  // automatically shows up with 1 input + 1 output already used, same as if it had been built that way.
+  return node;
+}
 function place(type,x,y,recipeId,tier){ if(!canPlace(type,x,y))return null;
   if(type==="extractor")return makeNode("extractor",x,y,null,tier);
   if(type==="generator"){ const b={id:nextId++,type:"generator",x,y}; nodes[b.id]=b; cell[y][x]={t:"bld",id:b.id}; return b; }
+  if((type==="splitter"||type==="merger"||type==="smart_splitter")&&cell[y][x]&&cell[y][x].t==="belt")return spliceOnBelt(type,x,y);
   return makeNode(type,x,y,recipeId); }
+
+// ---------------------------------------------------------------- DELETE (buildings + belts)
+function tidyPortMemory(b){ // clear a stale singular "carries X" once a splitter/merger/storage room has no ports left and nothing buffered
+  if((b.type==="splitter"||b.type==="merger"||b.type==="storageroom")&&inBeltCount(b)===0&&outBeltCount(b)===0&&(b.buf||0)<=1e-6){ b.good=null; b.buf=0; }
+}
+function deleteBelt(beltId){
+  const idx=belts.findIndex(be=>be.id===beltId); if(idx<0)return false;
+  const be=belts[idx];
+  for(let i=0;i<be.path.length;i++){ const[x,y]=be.path[i];
+    if(be.cross&&be.cross[i]){ if(crossings[y*GW+x]===beltId)delete crossings[y*GW+x]; }
+    else if(cell[y]&&cell[y][x]&&cell[y][x].t==="belt"&&cell[y][x].id===beltId){ cell[y][x]=null; }
+  }
+  belts.splice(idx,1);
+  const s=nodes[be.src], d=nodes[be.dst];
+  if(s&&s.outBelt&&s.outBelt[be.good]===beltId)delete s.outBelt[be.good];
+  if(d&&d.inBelt&&d.inBelt[be.good]===beltId)delete d.inBelt[be.good];
+  if(s)tidyPortMemory(s);
+  if(d)tidyPortMemory(d);
+  return true;
+}
+function deleteBuilding(nodeId){
+  const b=nodes[nodeId]; if(!b)return false;
+  const touching=belts.filter(be=>be.src===nodeId||be.dst===nodeId).map(be=>be.id);
+  for(const id of touching)deleteBelt(id);
+  delete nodes[nodeId];
+  if(b.type==="extractor"){ const dep=deposits.find(d=>d.x===b.x&&d.y===b.y); cell[b.y][b.x]=dep?{t:"dep",d:dep}:null; }
+  else cell[b.y][b.x]=null;
+  return true;
+}
+// ---------------------------------------------------------------- RECIPE CHANGE (in place, no rebuild)
+function changeRecipe(nodeId,recipeId){
+  const b=nodes[nodeId]; if(!b)return{err:"missing"};
+  if(b.type!=="smelter"&&b.type!=="fabricator")return{err:"This building has no recipe to change"};
+  if(inBeltCount(b)>0||outBeltCount(b)>0)return{err:"Disconnect its belts first (Delete tool), then change the recipe"};
+  const r=RECIPES[recipeId]; if(!r||r.b!==b.type)return{err:"Not a valid recipe for this building"};
+  b.recipeId=recipeId; b.inBuf={}; b.outBuf={}; b.util=0; b.working=false; b.stalled=false;
+  r.in.forEach(([g])=>b.inBuf[g]=0); r.out.forEach(([g])=>b.outBuf[g]=0);
+  return{ok:true};
+}
 
 // ---------------------------------------------------------------- RENDER
 const c=document.getElementById("c"), ctx=c.getContext("2d");
@@ -298,11 +529,17 @@ function draw(){
   ctx.strokeStyle="var(--grid)"; ctx.strokeStyle="#1d2430"; ctx.lineWidth=1;
   for(let x=0;x<=GW;x++){ctx.beginPath();ctx.moveTo(OX+x*CS,OY);ctx.lineTo(OX+x*CS,OY+GH*CS);ctx.stroke();}
   for(let y=0;y<=GH;y++){ctx.beginPath();ctx.moveTo(OX,OY+y*CS);ctx.lineTo(OX+GW*CS,OY+y*CS);ctx.stroke();}
-  // deposits (faint)
-  for(const d of deposits){ if(cell[d.y][d.x].t==="dep"){ ctx.globalAlpha=.5; ctx.fillStyle=ITEMS[d.good].c;
+  // deposits — fully invisible until Scanned (discovered)
+  for(const d of deposits){ if(!d.discovered)continue; if(cell[d.y][d.x].t==="dep"){ ctx.globalAlpha=.5; ctx.fillStyle=ITEMS[d.good].c;
       ctx.beginPath(); ctx.arc(cx(d.x),cy(d.y),CS*0.32,0,6.29); ctx.fill(); ctx.globalAlpha=1;
       ctx.fillStyle="#0d1015"; ctx.font=`bold ${CS*0.2}px sans-serif`; ctx.textAlign="center";
       ctx.fillText("◆".repeat(d.rich),cx(d.x),cy(d.y)+CS*0.07); } }
+  // scan-select rectangle preview (drag in progress)
+  if(mode==="scan"&&scanning&&scanStart){ const x1=Math.min(scanStart[0],scanEnd[0]), x2=Math.max(scanStart[0],scanEnd[0]);
+    const y1=Math.min(scanStart[1],scanEnd[1]), y2=Math.max(scanStart[1],scanEnd[1]);
+    ctx.strokeStyle="#4fd1c5"; ctx.fillStyle="rgba(79,209,197,.12)"; ctx.lineWidth=2; ctx.setLineDash([4,3]);
+    ctx.fillRect(OX+x1*CS,OY+y1*CS,(x2-x1+1)*CS,(y2-y1+1)*CS);
+    ctx.strokeRect(OX+x1*CS,OY+y1*CS,(x2-x1+1)*CS,(y2-y1+1)*CS); ctx.setLineDash([]); }
   // belts
   for(const be of belts){ const pts=be.path.map(([x,y])=>[cx(x),cy(y)]);
     // connect from src edge to first, and last to dst edge
@@ -315,11 +552,35 @@ function draw(){
     for(const sp of be.sprites){ const P=lerpPath(full,sp.p); ctx.fillStyle=ITEMS[sp.g]?ITEMS[sp.g].c:"#ccc";
       ctx.beginPath(); ctx.arc(P[0],P[1],CS*0.11,0,6.29); ctx.fill(); }
   }
+  // Elevator Overpass crossing markers — a belt passes over another belt's cell here (mechanics-spec.md §1.4)
+  for(const key in crossings){ const k=+key; const x=k%GW, y=(k-x)/GW;
+    ctx.fillStyle="rgba(143,127,224,.9)"; ctx.strokeStyle="#0d1015"; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(cx(x),cy(y),CS*0.22,0,6.29); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle="#0d1015"; ctx.lineWidth=CS*0.07; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(cx(x)-CS*0.14,cy(y)-CS*0.14); ctx.lineTo(cx(x)+CS*0.14,cy(y)+CS*0.14); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx(x)+CS*0.14,cy(y)-CS*0.14); ctx.lineTo(cx(x)-CS*0.14,cy(y)+CS*0.14); ctx.stroke();
+  }
   // buildings
   for(const id in nodes){ const b=nodes[id]; if(b.type==="generator"){drawGen(b);continue;} drawBld(b); }
   // pending connect highlight
-  if(mode==="belt"&&beltFrom){ const b=nodes[beltFrom]; ctx.strokeStyle="var(--accent)"; ctx.strokeStyle="#4fd1c5";
-    ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.strokeRect(OX+b.x*CS+3,OY+b.y*CS+3,CS-6,CS-6); ctx.setLineDash([]); }
+  if(mode==="belt"&&beltSrc!=null){ const s=nodes[beltSrc];
+    ctx.strokeStyle="#4fd1c5"; ctx.lineWidth=2; ctx.setLineDash([5,4]);
+    ctx.strokeRect(OX+s.x*CS+3,OY+s.y*CS+3,CS-6,CS-6); ctx.setLineDash([]);
+    if(beltPath.length){ // in-progress manually-drawn path, dashed teal preview with a dot on the current tail
+      const pts=[[cx(s.x),cy(s.y)],...beltPath.map(([px,py])=>[cx(px),cy(py)])];
+      ctx.strokeStyle="#4fd1c5"; ctx.lineWidth=CS*0.2; ctx.lineJoin="round"; ctx.lineCap="round"; ctx.globalAlpha=.55;
+      ctx.setLineDash([CS*0.15,CS*0.12]);
+      ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha=1;
+      const tail=beltPath[beltPath.length-1];
+      ctx.fillStyle="#4fd1c5"; ctx.beginPath(); ctx.arc(cx(tail[0]),cy(tail[1]),CS*0.12,0,6.29); ctx.fill();
+      // pending Elevator Overpass crossings in this in-progress path
+      ctx.strokeStyle="#8f7fe0"; ctx.lineWidth=CS*0.05; ctx.lineCap="round";
+      for(let i=0;i<beltPath.length;i++){ if(!beltPathCross[i])continue; const[px,py]=beltPath[i];
+        ctx.beginPath(); ctx.moveTo(cx(px)-CS*0.15,cy(py)-CS*0.15); ctx.lineTo(cx(px)+CS*0.15,cy(py)-CS*0.15); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx(px)-CS*0.15,cy(py)+CS*0.15); ctx.lineTo(cx(px)+CS*0.15,cy(py)+CS*0.15); ctx.stroke();
+      }
+    } }
 }
 function lerpPath(pts,t){ // t 0..1 across whole polyline
   let tot=0; const segs=[]; for(let i=1;i<pts.length;i++){ const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]); segs.push(d); tot+=d; }
@@ -333,12 +594,14 @@ function drawBld(b){ const x=OX+b.x*CS, y=OY+b.y*CS, meta=BUILD[b.type];
   ctx.font=`${CS*0.15}px sans-serif`;
   if(b.type==="extractor")ctx.fillText("T"+b.tier+" "+Math.round(b.rate)+"/m",x+CS/2,y+CS*0.62);
   else if(b.recipeId)ctx.fillText(Math.round(b.util*100)+"%",x+CS/2,y+CS*0.62);
-  else if(b.type==="terminal"){ctx.fillText(delivered.toFixed(0)+"/"+quota,x+CS/2,y+CS*0.62);}
+  else if(b.type==="terminal"){ const need=currentTierNeed(); const met=need.filter(([g,q])=>(tierProgress[g]||0)>=q).length;
+    ctx.fillText(techTier>=TIERS.length?"MAX":met+"/"+need.length+" goods",x+CS/2,y+CS*0.62); }
   else if(b.type==="splitter")ctx.fillText("1→3",x+CS/2,y+CS*0.62);
   else if(b.type==="merger")ctx.fillText(inBeltCount(b)+"→1",x+CS/2,y+CS*0.62);
+  else if(b.type==="smart_splitter")ctx.fillText(inBeltCount(b)+"→"+outBeltCount(b),x+CS/2,y+CS*0.62);
   else if(b.type==="storageroom")ctx.fillText(Math.round(b.buf||0)+"/"+BIGCAP,x+CS/2,y+CS*0.62);
   // buffer gauges
-  if(b.type!=="splitter"&&b.type!=="terminal"&&b.type!=="merger"&&b.type!=="storageroom"){ const outs=Object.keys(b.outBuf); if(outs.length){ const g=outs[0];
+  if(b.type!=="splitter"&&b.type!=="terminal"&&b.type!=="merger"&&b.type!=="storageroom"&&b.type!=="smart_splitter"){ const outs=Object.keys(b.outBuf); if(outs.length){ const g=outs[0];
     gauge(x+CS-6,y+4,4,CS-8,(b.outBuf[g]||0)/CAP,ITEMS[g].c); }
     const ins=Object.keys(b.inBuf); if(ins.length){ gauge(x+2,y+4,4,CS-8,(b.inBuf[ins[0]]||0)/CAP,"#d9a441"); } }
   if(b.stalled){ctx.fillStyle="#e0554f";ctx.font=`bold ${CS*0.13}px sans-serif`;ctx.fillText("STALL",x+CS/2,y+CS*0.8);}
@@ -354,9 +617,12 @@ function updateAnalyze(){ const el=document.getElementById("analyzeBody"); if(!d
   let h=""; for(const id in nodes){ const b=nodes[id]; if(b.type==="generator")continue;
     let rate="",sub="";
     if(b.type==="extractor"){ rate=Math.round(b.outBuf[b.good]>=CAP?0:b.rate)+"/m"; sub="out "+Math.round(b.outBuf[b.good])+"/"+CAP; }
-    else if(b.type==="terminal"){ rate=delivered.toFixed(0)+"/"+quota; sub=ITEMS[targetGood].n; }
+    else if(b.type==="terminal"){ const need=currentTierNeed();
+      if(techTier>=TIERS.length){ rate="MAX TIER"; sub="all defined tiers complete"; }
+      else { rate=`Tier ${techTier+1} · ${TIERS[techTier].name}`; sub=need.map(([g,q])=>`${Math.min(tierProgress[g]||0,q)}/${q} ${ITEMS[g].n}`).join(", "); } }
     else if(b.type==="splitter"){ rate="buf "+Math.round(b.buf||0); sub="1→"+outBeltCount(b); }
     else if(b.type==="merger"){ rate="buf "+Math.round(b.buf||0); sub=inBeltCount(b)+"→1"; }
+    else if(b.type==="smart_splitter"){ const goods=Object.keys(b.buf||{}); rate=goods.length?goods.map(g=>Math.round(b.buf[g])+" "+ITEMS[g].n).join(", "):"empty"; sub=inBeltCount(b)+" in · "+outBeltCount(b)+" out"; }
     else if(b.type==="storageroom"){ rate="buf "+Math.round(b.buf||0)+"/"+BIGCAP; sub=b.good?ITEMS[b.good].n:"empty"; }
     else{ const r=RECIPES[b.recipeId]; const og=r.out[0]; rate=Math.round(b.util*rpm(og[1],r.sec))+"/m "+Math.round(b.util*100)+"%";
       sub="in "+Math.round(b.inBuf[r.in[0][0]])+" · out "+Math.round(b.outBuf[og[0]]); }
@@ -368,20 +634,26 @@ function updateAnalyze(){ const el=document.getElementById("analyzeBody"); if(!d
 }
 
 // ---------------------------------------------------------------- INPUT / UI
-let mode=null, placeType=null, beltFrom=null, pendingPlace=null, beltTier=1;
+let mode=null, placeType=null, beltSrc=null, beltPath=[], beltPathCross=[], pendingPlace=null, beltTier=1;
+let scanning=false, scanStart=null, scanEnd=null;
 const hint=document.getElementById("hint");
 function setHint(t,cls){ hint.innerHTML=t; hint.className=cls||""; }
 function buildPalette(){ const P=document.getElementById("palette"); P.innerHTML="";
-  const items=[["extractor",true],["smelter",true],["fabricator",true],["splitter",tierUnlocked("splitter")],["merger",tierUnlocked("merger")],["storageroom",tierUnlocked("storageroom")],["generator",true],["belt1",true],["belt2",tierUnlocked("belt2")],["analyze",true]];
+  const items=[["extractor",true],["smelter",true],["fabricator",true],["terminal",true],["splitter",tierUnlocked("splitter")],["merger",tierUnlocked("merger")],["smart_splitter",tierUnlocked("smart_splitter")],["storageroom",tierUnlocked("storageroom")],["generator",true],["belt1",true],["belt2",tierUnlocked("belt2")],["scan",true],["analyze",true],["contracts",true],["delete",true]];
   for(const[t,en]of items){ const btn=document.createElement("button"); btn.className="tool"; btn.dataset.t=t;
-    if(t==="belt1")btn.innerHTML="Belt T1<small>"+CFG.beltCap.t1+"/m</small>"; else if(t==="belt2")btn.innerHTML="Belt T2<small>"+CFG.beltCap.t2+"/m</small>"; else if(t==="analyze")btn.innerHTML="Analyze<small>rates</small>";
+    if(t==="belt1")btn.innerHTML="Belt T1<small>"+CFG.beltCap.t1+"/m</small>"; else if(t==="belt2")btn.innerHTML="Belt T2<small>"+CFG.beltCap.t2+"/m</small>"; else if(t==="scan")btn.innerHTML="Scan<small>reveal area</small>"; else if(t==="analyze")btn.innerHTML="Analyze<small>rates</small>"; else if(t==="delete")btn.innerHTML="Delete<small>remove tap</small>"; else if(t==="contracts")btn.innerHTML="Contracts<small>quotas</small>";
     else btn.innerHTML=BUILD[t].label.replace(" ","<br>")+`<small>${BUILD[t].sub}</small>`;
     btn.disabled=!en; btn.onclick=()=>selectTool(t,btn); P.appendChild(btn); } }
-function tierUnlocked(x){ return true; } // Act-1: all Tier-1/2 basics available for the slice
 function selectTool(t,btn){ document.querySelectorAll(".tool").forEach(b=>b.classList.remove("active"));
-  if(t==="analyze"){ const a=document.getElementById("analyze"); a.classList.toggle("show"); if(a.classList.contains("show"))btn.classList.add("active"); mode=null; placeType=null; beltFrom=null; return; }
-  btn.classList.add("active"); beltFrom=null;
-  if(t==="belt1"||t==="belt2"){ mode="belt"; beltTier=(t==="belt2")?2:1; setHint(`Belt T${beltTier} (${CFG.beltCap["t"+beltTier]}/m): tap a <b>source</b> building's output, then a <b>destination</b>. Belts can't cross — they auto-route around.`); }
+  if(t==="analyze"){ document.getElementById("contractsPanel").classList.remove("show"); const a=document.getElementById("analyze"); a.classList.toggle("show"); if(a.classList.contains("show"))btn.classList.add("active"); mode=null; placeType=null; beltSrc=null; beltPath=[]; beltPathCross=[]; return; }
+  if(t==="contracts"){ document.getElementById("analyze").classList.remove("show"); const cp=document.getElementById("contractsPanel"); cp.classList.toggle("show"); if(cp.classList.contains("show")){ btn.classList.add("active"); updateContractsPanel(); } mode=null; placeType=null; beltSrc=null; beltPath=[]; beltPathCross=[]; return; }
+  btn.classList.add("active"); beltSrc=null; beltPath=[]; beltPathCross=[];
+  if(t==="belt1"||t==="belt2"){ mode="belt"; beltTier=(t==="belt2")?2:1;
+    const crossNote=tierUnlocked("elevator")?" Tap onto another belt to cross it with an Elevator Overpass instead of routing around.":"";
+    setHint(`Belt T${beltTier} (${CFG.beltCap["t"+beltTier]}/m): tap a <b>source</b> building, then tap cell-by-cell toward a <b>destination</b>. Belts can't cross buildings — you route around by hand.${crossNote}`); }
+  else if(t==="scan"){ mode="scan"; scanning=false; scanStart=null; setHint("Scan: drag a box over the map to reveal any ore deposits hidden inside it."); }
+  else if(t==="delete"){ mode="delete"; setHint("Delete: tap a building or a belt cell to remove it. This also clears anything wired directly to it."); }
+  else if(t==="splitter"||t==="merger"||t==="smart_splitter"){ mode="place"; placeType=t; setHint(`Tap an empty cell, or tap an existing belt to splice the ${BUILD[t].label} into it.`); }
   else { mode="place"; placeType=t; setHint(`Tap a ${t==="extractor"?"faint ore deposit":"grid cell"} to place the ${BUILD[t].label}.`); } }
 c.addEventListener("pointerdown",e=>{ const r=c.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top;
   const x=gx(px), y=gy(py); if(x<0||x>=GW||y<0||y>=GH)return;
@@ -393,16 +665,65 @@ c.addEventListener("pointerdown",e=>{ const r=c.getBoundingClientRect(); const p
     if(placeType==="extractor"){ askExtractorTier(x,y); return; }
     const b=place(placeType,x,y); if(b)setHint(`${BUILD[placeType].label} placed.`,"ok");
   } else if(mode==="belt"){
-    if(cc&&cc.t==="bld"){ const b=nodes[cc.id];
-      if(beltFrom==null){ beltFrom=cc.id; setHint(`From <b>${nodeName(b)}</b> — now tap the destination.`); }
-      else { const res=connect(beltFrom,cc.id,beltTier); if(res.err){ setHint("⚠ "+res.err,"warn"); }
-        else { setHint(`Belt T${beltTier} connected.`,"ok"); } beltFrom=null; } }
-    else if(cc&&cc.t==="bld"===false){ setHint("Tap a building, not empty ground.","warn"); }
+    // Manual belt drawing: tap a source building, then tap adjacent empty cells one at a time to extend
+    // the belt, then tap an adjacent destination to finish. Tap the last-placed cell again to undo it;
+    // re-tap the source (with nothing drawn yet) to cancel.
+    if(beltSrc==null){
+      if(cc&&cc.t==="bld"){ beltSrc=cc.id; beltPath=[]; beltPathCross=[]; setHint(`From <b>${nodeName(nodes[cc.id])}</b> — tap an adjacent cell to start laying belt, or tap an adjacent building to connect directly.`); }
+      else setHint("Tap a building to start a belt from its output.","warn");
+    } else {
+      const s=nodes[beltSrc];
+      const tailX=beltPath.length?beltPath[beltPath.length-1][0]:s.x, tailY=beltPath.length?beltPath[beltPath.length-1][1]:s.y;
+      const adjToTail=Math.abs(tailX-x)+Math.abs(tailY-y)===1;
+      if(cc&&cc.t==="bld"&&cc.id===beltSrc&&beltPath.length===0){
+        beltSrc=null; setHint("Belt cancelled.");
+      } else if(beltPath.length&&x===beltPath[beltPath.length-1][0]&&y===beltPath[beltPath.length-1][1]){
+        beltPath.pop(); beltPathCross.pop(); setHint(beltPath.length?`Undid last cell — ${beltPath.length} left.`:`Back to <b>${nodeName(s)}</b> — tap an adjacent cell.`);
+      } else if(cc&&cc.t==="bld"){
+        if(!adjToTail){ setHint("That building isn't adjacent to your last belt cell yet — keep drawing toward it.","warn"); }
+        else { const res=connect(beltSrc,cc.id,beltTier,beltPath.slice(),undefined,beltPathCross.slice());
+          const bsrc=beltSrc, bpath=beltPath.slice(), bcross=beltPathCross.slice(), btier=beltTier;
+          if(res.err==="AMBIGUOUS_GOOD"){ beltSrc=null; beltPath=[]; beltPathCross=[]; askOutputGood(bsrc,cc.id,btier,bpath,res.candidates,bcross); }
+          else if(res.err){ setHint("⚠ "+res.err,"warn"); beltSrc=null; beltPath=[]; beltPathCross=[]; }
+          else { setHint(`Belt T${beltTier} connected (${beltPath.length} cell${beltPath.length===1?'':'s'}).`,"ok"); beltSrc=null; beltPath=[]; beltPathCross=[]; } }
+      } else if(!cc){
+        if(!adjToTail){ setHint("Next belt cell must be adjacent to the last one you placed.","warn"); }
+        else { beltPath.push([x,y]); beltPathCross.push(false); setHint(`Laying belt — ${beltPath.length} cell${beltPath.length===1?'':'s'} so far. Tap an adjacent destination to finish, or keep extending.`); }
+      } else if(cc.t==="belt"){
+        // Elevator Overpass: crossing over another belt instead of routing around (mechanics-spec.md §1.4), Tier 2+
+        if(!tierUnlocked("elevator")){ setHint("Belts can't cross each other yet — Elevator Overpass unlocks at Tier 2. Route around for now.","warn"); }
+        else if(!adjToTail){ setHint("That belt cell isn't adjacent to your last placed cell yet — keep drawing toward it.","warn"); }
+        else if(crossings[y*GW+x]){ setHint("There's already an overpass crossing that cell — pick a different cell to cross, or route around.","warn"); }
+        else { beltPath.push([x,y]); beltPathCross.push(true); setHint(`Elevator Overpass — crossing over the belt below (${beltPath.length} cell${beltPath.length===1?'':'s'} so far). Keep drawing, or tap an adjacent destination to finish.`,"ok"); }
+      } else { setHint("Belts can't cross buildings or deposits — route around.","warn"); }
+    }
+  } else if(mode==="scan"){
+    scanning=true; scanStart=[x,y]; scanEnd=[x,y];
+  } else if(mode==="delete"){
+    if(cc&&cc.t==="bld"){ const nm=nodeName(nodes[cc.id]); deleteBuilding(cc.id); setHint(`${nm} removed.`,"ok"); }
+    else if(cc&&cc.t==="belt"){ deleteBelt(cc.id); setHint("Belt removed.","ok"); }
+    else { setHint("Tap a building or belt to delete it.","warn"); }
   } else {
-    // tap generator to pulse even without tool
-    if(cc&&cc.t==="bld"&&nodes[cc.id].type==="generator")pulseGen(nodes[cc.id]);
+    // no tool active: tap a generator to pulse it, tap any other building to see what it's doing, tap a belt for a quick readout
+    if(cc&&cc.t==="bld"){
+      if(nodes[cc.id].type==="generator")pulseGen(nodes[cc.id]);
+      else showBuildingInfo(cc.id);
+    } else if(cc&&cc.t==="belt"){
+      const be=belts.find(bl=>bl.id===cc.id);
+      if(be)setHint(`Belt T${be.tier} (${be.cap}/m cap) — carrying <b>${ITEMS[be.good]?ITEMS[be.good].n:be.good}</b>, flowing ${Math.round(be.flow)}/m.`);
+    }
   }
 });
+c.addEventListener("pointermove",e=>{ if(mode!=="scan"||!scanning)return;
+  const r=c.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top;
+  const x=Math.max(0,Math.min(GW-1,gx(px))), y=Math.max(0,Math.min(GH-1,gy(py)));
+  scanEnd=[x,y]; });
+function finishScan(){ if(!scanning||!scanStart)return;
+  const n=scanRegion(scanStart[0],scanStart[1],scanEnd[0],scanEnd[1]);
+  setHint(n>0?`Scan revealed ${n} deposit${n===1?'':'s'}.`:"Nothing new in that area.", n>0?"ok":"warn");
+  scanning=false; scanStart=null; scanEnd=null; }
+c.addEventListener("pointerup",finishScan);
+c.addEventListener("pointerleave",()=>{ if(mode==="scan"&&scanning)finishScan(); });
 function nodeName(b){ return b.type==="fabricator"?RECIPES[b.recipeId].name:BUILD[b.type].label; }
 function pulseGen(b){ battery=Math.min(CFG.batteryCap,battery+CFG.genPerClick); setHint("⚡ +"+CFG.genPerClick+" kW","ok"); }
 function askRecipe(type,x,y){ const list=Object.entries(RECIPES).filter(([id,r])=>r.b===type);
@@ -417,35 +738,139 @@ function askExtractorTier(x,y){ const d=cell[y][x].d;
   const box=document.getElementById("recipePick"), opts=document.getElementById("rpOpts");
   document.getElementById("rpTitle").textContent="Extractor — choose tier";
   opts.innerHTML=""; CFG.extractorMult.forEach((mult,i)=>{ const tier=i+1, rate=CFG.richness[d.rich-1]*mult;
+    if(techTier<EXTRACTOR_TIER_UNLOCK[tier])return; // not unlocked yet — omit rather than show disabled (small mobile modal)
     const btn=document.createElement("button"); btn.className="opt";
     btn.innerHTML=`<b>T${tier} (×${mult})</b><div class="rt">${ITEMS[d.good].n} → ${rate}/m</div>`;
     btn.onclick=()=>{ box.classList.remove("show"); const b=place("extractor",x,y,null,tier); if(b)setHint(`T${tier} Extractor placed.`,"ok"); };
     opts.appendChild(btn); });
   box.classList.add("show"); }
+function askRecipeChange(nodeId){ const b=nodes[nodeId]; if(!b)return;
+  const list=Object.entries(RECIPES).filter(([id,r])=>r.b===b.type);
+  const box=document.getElementById("recipePick"), opts=document.getElementById("rpOpts");
+  document.getElementById("rpTitle").textContent=BUILD[b.type].label+" — change recipe";
+  opts.innerHTML=""; for(const[id,r]of list){ const btn=document.createElement("button"); btn.className="opt";
+    const ins=r.in.map(([g,q])=>q+"× "+ITEMS[g].n).join(", "), outs=r.out.map(([g,q])=>q+"× "+ITEMS[g].n).join(", ");
+    if(id===b.recipeId)btn.style.borderColor="var(--accent)";
+    btn.innerHTML=`<b>${r.name}${id===b.recipeId?" (current)":""}</b><div class="rt">${ins} → ${outs} · ${r.sec}s → ${Math.round(rpm(r.out[0][1],r.sec))}/m</div>`;
+    btn.onclick=()=>{ box.classList.remove("show"); const res=changeRecipe(nodeId,id);
+      setHint(res.err?"⚠ "+res.err:`Recipe changed to ${r.name}.`, res.err?"warn":"ok"); };
+    opts.appendChild(btn); }
+  box.classList.add("show"); }
+function askOutputGood(beltSrcId,dstId,tier,path,candidates,crossFlags){ // Smart Splitter has several buffered goods — ask which one this new belt should carry
+  const box=document.getElementById("goodPick"), opts=document.getElementById("gpOpts");
+  opts.innerHTML=""; for(const g of candidates){ const btn=document.createElement("button"); btn.className="opt";
+    btn.textContent=ITEMS[g].n;
+    btn.onclick=()=>{ box.classList.remove("show"); const res=connect(beltSrcId,dstId,tier,path,g,crossFlags);
+      if(res.err)setHint("⚠ "+res.err,"warn");
+      else setHint(`Belt T${tier} connected (${path.length} cell${path.length===1?'':'s'}) — carrying ${ITEMS[g].n}.`,"ok"); };
+    opts.appendChild(btn); }
+  box.classList.add("show"); }
+document.getElementById("gpCancel").onclick=()=>{ document.getElementById("goodPick").classList.remove("show"); setHint("Belt cancelled — no good was picked.","warn"); };
+// ---------------------------------------------------------------- BUILDING INFO (tap a building with no tool active)
+function buildingInfoRows(b){ const rows=[];
+  if(b.type==="extractor"){
+    rows.push(["Tier","T"+b.tier]); rows.push(["Rate",Math.round(b.rate)+"/m"]);
+    rows.push(["Output",ITEMS[b.good].n]); rows.push(["Buffer",Math.round(b.outBuf[b.good]||0)+"/"+CAP]);
+    rows.push(["Status",b.stalled?"STALLED (belt/output full)":(b.working?"working":"idle")]);
+  } else if(b.type==="smelter"||b.type==="fabricator"){
+    const r=RECIPES[b.recipeId];
+    rows.push(["Recipe",r.name]);
+    rows.push(["Inputs",r.in.map(([g,q])=>`${q}× ${ITEMS[g].n} (have ${Math.round(b.inBuf[g]||0)})`).join(", ")]);
+    rows.push(["Outputs",r.out.map(([g,q])=>`${q}× ${ITEMS[g].n} (have ${Math.round(b.outBuf[g]||0)}/${CAP})`).join(", ")]);
+    rows.push(["Rate",Math.round(b.util*rpm(r.out[0][1],r.sec))+"/m ("+Math.round(b.util*100)+"%)"]);
+    rows.push(["Power draw",POWER[b.type]+" kW while working"]);
+    rows.push(["Status",b.stalled?"STALLED":(b.working?"working":"idle")]);
+  } else if(b.type==="splitter"){
+    rows.push(["Carries",b.good?ITEMS[b.good].n:"nothing yet"]); rows.push(["Buffer",Math.round(b.buf||0)+"/"+CAP]);
+    rows.push(["Ports",`${inBeltCount(b)}/1 in · ${outBeltCount(b)}/3 out`]);
+  } else if(b.type==="merger"){
+    rows.push(["Carries",b.good?ITEMS[b.good].n:"nothing yet"]); rows.push(["Buffer",Math.round(b.buf||0)+"/"+CAP]);
+    rows.push(["Ports",`${inBeltCount(b)}/3 in · ${outBeltCount(b)}/1 out`]);
+    rows.push(["Note","Only combines inputs of the same good. For different goods, use a Smart Splitter."]);
+  } else if(b.type==="smart_splitter"){
+    const goods=Object.keys(b.buf||{});
+    rows.push(["Buffered goods",goods.length?goods.map(g=>`${ITEMS[g].n}: ${Math.round(b.buf[g])}/${CAP}`).join(", "):"nothing yet"]);
+    rows.push(["Ports",`${inBeltCount(b)}/3 in (any goods) · ${outBeltCount(b)}/3 out (pick a good each)`]);
+  } else if(b.type==="storageroom"){
+    rows.push(["Holding",b.good?ITEMS[b.good].n:"nothing yet"]); rows.push(["Buffer",Math.round(b.buf||0)+"/"+BIGCAP]);
+  } else if(b.type==="terminal"){
+    const need=currentTierNeed();
+    if(techTier>=TIERS.length){ rows.push(["Status","All defined tiers complete"]); }
+    else{ rows.push(["Tier",`${techTier+1} · ${TIERS[techTier].name}`]);
+      for(const[g,q]of need)rows.push([ITEMS[g].n,`${Math.min(tierProgress[g]||0,q)}/${q}`]); }
+  }
+  return rows; }
+function showBuildingInfo(nodeId){ const b=nodes[nodeId]; if(!b)return;
+  const nm=nodeName(b);
+  document.getElementById("infoTitle").textContent=nm+(b.stalled?" ⚠":"");
+  const body=document.getElementById("infoBody");
+  body.innerHTML=buildingInfoRows(b).map(([k,v])=>`<div class="infoRow"><span class="k">${k}</span><span>${v}</span></div>`).join("");
+  const actions=document.getElementById("infoActions"); actions.innerHTML="";
+  if(b.type==="smelter"||b.type==="fabricator"){
+    const canChange=inBeltCount(b)===0&&outBeltCount(b)===0;
+    if(!canChange){ const note=document.createElement("div"); note.className="warnNote";
+      note.textContent="Disconnect its belts first (Delete tool) to change the recipe without losing product."; actions.appendChild(note); }
+    const btn=document.createElement("button"); btn.className="opt"; btn.textContent="Change recipe"; btn.disabled=!canChange;
+    if(!canChange)btn.style.opacity=.4;
+    btn.onclick=()=>{ document.getElementById("infoModal").classList.remove("show"); askRecipeChange(nodeId); };
+    actions.appendChild(btn);
+  }
+  const delBtn=document.createElement("button"); delBtn.className="opt"; delBtn.style.background="#3a2422"; delBtn.textContent="Delete this building";
+  delBtn.onclick=()=>{ document.getElementById("infoModal").classList.remove("show"); const nm2=nodeName(b); deleteBuilding(nodeId); setHint(`${nm2} removed.`,"ok"); };
+  actions.appendChild(delBtn);
+  document.getElementById("infoModal").classList.add("show"); }
+document.getElementById("infoCancel").onclick=()=>document.getElementById("infoModal").classList.remove("show");
+// ---------------------------------------------------------------- TIER PROGRESS PANEL (tap the header tier label)
+document.getElementById("tierLbl").onclick=()=>{ document.getElementById("tierPanel").classList.toggle("show"); };
+function updateTierPanel(){ const p=document.getElementById("tierPanel"); if(!p.classList.contains("show"))return;
+  const el=document.getElementById("tierPanelBody"); let h="";
+  if(techTier>=TIERS.length){ h+=`<div class="b">All defined tiers complete 🎉</div>`; }
+  else{ const t=TIERS[techTier];
+    h+=`<div class="b">Tier ${techTier+1} · ${t.name}</div>`;
+    for(const[g,q]of t.need)h+=`<div class="r"><span class="k">${ITEMS[g].n}</span><span>${Math.min(tierProgress[g]||0,q)}/${q}</span></div>`;
+    h+=`<div class="sub">Unlocks: ${t.unlockLabel}</div>`;
+    if(techTier+1<TIERS.length){ const nt=TIERS[techTier+1];
+      h+=`<div class="b" style="margin-top:8px">Then Tier ${techTier+2} · ${nt.name}</div>`;
+      h+=`<div class="sub">Needs: ${nt.need.map(([g,q])=>q+"× "+ITEMS[g].n).join(", ")}</div>`;
+      h+=`<div class="sub">Unlocks: ${nt.unlockLabel}</div>`; }
+  }
+  el.innerHTML=h; }
 document.getElementById("rpCancel").onclick=()=>document.getElementById("recipePick").classList.remove("show");
+// ---------------------------------------------------------------- CONTRACTS PANEL
+function updateContractsPanel(){ const p=document.getElementById("contractsPanel"); if(!p.classList.contains("show"))return;
+  const el=document.getElementById("contractsPanelBody");
+  let h=`<div class="r"><span class="k">Credits earned</span><span>💰 ${Math.round(credits)}</span></div><div class="r"><span class="k">Contracts completed</span><span>${contractsCompleted}</span></div>`;
+  if(!contracts.length){ h+=`<div class="sub" style="margin-top:6px">No active contracts right now.</div>`; }
+  for(const c of contracts){ h+=`<div class="b" style="margin-top:6px">${ITEMS[c.good].n}</div><div class="r"><span class="k">Deliver ${c.qty}</span><span>${Math.min(Math.round(c.progress),c.qty)}/${c.qty}</span></div><div class="sub">Reward: 💰 ${c.reward} — delivers automatically once the current tier's own quota for this good is met (surplus routes here).</div>`; }
+  el.innerHTML=h; }
 
 // ---------------------------------------------------------------- LOOP
 let acc=0, last=performance.now();
 function loop(now){ let dt=(now-last)/1000; last=now; if(dt>0.25)dt=0.25; acc+=dt;
   while(acc>=CFG.dt){ tick(CFG.dt); acc-=CFG.dt; }
-  draw(); updateHeader(); updateAnalyze(); requestAnimationFrame(loop); }
+  draw(); updateHeader(); updateAnalyze(); updateTierPanel(); updateContractsPanel(); requestAnimationFrame(loop); }
 function tick(dt){ sim(dt);
   // battery brownout flag
   brownout=(!CFG.autoPower)&&battery<=0.001;
-  if(delivered>=quota&&quota>0){ quota=0; setHint("✅ Tier 1 quota met — Assembly Terminal satisfied. (Next tiers wire in from here.)","ok"); }
 }
 function updateHeader(){ document.getElementById("powerLbl").textContent="⚡ "+Math.round(battery)+(brownout?" · BROWNOUT":"");
-  document.getElementById("powerLbl").style.color=brownout?"#e0554f":(battery<CFG.batteryCap*0.2?"#e07a3f":"#e8ecf1"); }
+  const lbl=document.getElementById("tierLbl");
+  lbl.textContent=techTier>=TIERS.length?`Tier ${techTier} · MAX`:(techTier===0?"Tier 0 · Boot":`Tier ${techTier} · ${TIERS[techTier-1].name}`);
+  document.getElementById("powerLbl").style.color=brownout?"#e0554f":(battery<CFG.batteryCap*0.2?"#e07a3f":"#e8ecf1");
+  document.getElementById("creditsLbl").textContent="💰 "+Math.round(credits);
+  const pb=document.getElementById("prestigeBtn"); const eligible=prestigeEligible();
+  pb.disabled=!eligible; pb.textContent=eligible?`Prestige (+${Math.round(PRESTIGE_MULT_PER_LEVEL*100)}%)`:"Prestige"; }
 
 // ---------------------------------------------------------------- SAVE / LOAD / OFFLINE EARNINGS
-const SAVE_KEY="lineBalance_save_v1";
+const SAVE_KEY="lineBalance_save_v3"; // v3: adds contracts/credits/prestigeCount (v2: tech-tier turn-in replaced the old single delivered/quota/targetGood)
 function saveGame(){
   try{
-    const data={ v:1, savedAt:Date.now(), nextId, battery, delivered, quota, targetGood,
-      deposits:deposits.map(d=>({x:d.x,y:d.y,good:d.good,rich:d.rich})),
+    const data={ v:3, savedAt:Date.now(), nextId, battery, techTier, tierProgress, lifetimeDelivered,
+      contracts, credits, contractsCompleted, prestigeCount, crossings,
+      deposits:deposits.map(d=>({x:d.x,y:d.y,good:d.good,rich:d.rich,discovered:!!d.discovered})),
       nodes:Object.values(nodes).map(b=>({id:b.id,type:b.type,x:b.x,y:b.y,recipeId:b.recipeId,
         tier:b.tier,good:b.good,buf:b.buf,inBuf:b.inBuf,outBuf:b.outBuf})),
-      belts:belts.map(be=>({id:be.id,src:be.src,dst:be.dst,good:be.good,path:be.path,tier:be.tier})) };
+      belts:belts.map(be=>({id:be.id,src:be.src,dst:be.dst,good:be.good,path:be.path,cross:be.cross,tier:be.tier})) };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   }catch(e){ /* storage unavailable — silently skip, game still runs in-memory */ }
 }
@@ -453,9 +878,9 @@ function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
 function offlineCatchUp(elapsedSec){
   const capped=Math.max(0,Math.min(elapsedSec,CFG.offlineCapSec));
   if(capped<=0)return 0;
-  const before=delivered, stepDt=2; let remaining=capped;
+  const before=lifetimeDelivered, stepDt=2; let remaining=capped;
   while(remaining>0){ const d=Math.min(stepDt,remaining); sim(d); remaining-=d; }
-  return delivered-before;
+  return lifetimeDelivered-before;
 }
 function fmtElapsed(sec){ const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60);
   return h>0?`${h}h ${m}m`:`${m}m`; }
@@ -463,12 +888,15 @@ function loadGame(){
   let raw; try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){ return false; }
   if(!raw)return false;
   let data; try{ data=JSON.parse(raw); }catch(e){ return false; }
-  if(!data||data.v!==1||!Array.isArray(data.nodes)||!Array.isArray(data.belts))return false;
+  if(!data||data.v!==3||!Array.isArray(data.nodes)||!Array.isArray(data.belts))return false; // older/unknown save format — fall through to a fresh reset()
   cell=Array.from({length:GH},()=>Array(GW).fill(null));
-  deposits=(data.deposits||[]).slice(); nodes={}; belts=[];
+  deposits=(data.deposits||[]).map(d=>({x:d.x,y:d.y,good:d.good,rich:d.rich,discovered:!!d.discovered})); nodes={}; belts=[];
   nextId=data.nextId||1; battery=(data.battery!=null)?data.battery:CFG.batteryCap;
-  delivered=data.delivered||0; quota=(data.quota!=null)?data.quota:40;
-  targetGood=data.targetGood||"ferrite_plate"; brownout=false;
+  techTier=data.techTier||0; tierProgress=data.tierProgress||{}; lifetimeDelivered=data.lifetimeDelivered||0;
+  contracts=Array.isArray(data.contracts)?data.contracts:[]; credits=data.credits||0;
+  contractsCompleted=data.contractsCompleted||0; prestigeCount=data.prestigeCount||0;
+  crossings=(data.crossings&&typeof data.crossings==="object")?Object.assign({},data.crossings):{}; // added for Elevator Overpass — absent on older saves, defaults to no crossings (safe, no version bump needed)
+  brownout=false;
   for(const d of deposits){ if(!cell[d.y] || !(d.x>=0&&d.x<GW))continue; cell[d.y][d.x]={t:"dep",d}; }
   for(const nd of data.nodes){
     if(nd.type==="generator"){ nodes[nd.id]={id:nd.id,type:"generator",x:nd.x,y:nd.y}; cell[nd.y][nd.x]={t:"bld",id:nd.id}; continue; }
@@ -476,40 +904,55 @@ function loadGame(){
       inBuf:nd.inBuf||{},outBuf:nd.outBuf||{},util:0,working:false,stalled:false,inBelt:{},outBelt:{}};
     if(nd.type==="extractor"){ b.good=nd.good; b.tier=nd.tier||1;
       const dep=deposits.find(d=>d.x===nd.x&&d.y===nd.y);
-      b.rate=dep?CFG.richness[dep.rich-1]*CFG.extractorMult[b.tier-1]:0; }
+      b.rate=dep?CFG.richness[dep.rich-1]*CFG.extractorMult[b.tier-1]*prestigeMult():0; }
     if(nd.type==="splitter"||nd.type==="merger"||nd.type==="storageroom"){ b.good=nd.good||null; b.buf=nd.buf||0; }
+    if(nd.type==="smart_splitter"){ b.buf=nd.buf||{}; }
     nodes[nd.id]=b; cell[nd.y][nd.x]={t:"bld",id:nd.id};
   }
   for(const bd of data.belts){
-    const be={id:bd.id,src:bd.src,dst:bd.dst,good:bd.good,path:bd.path,sprites:[],flow:0,
+    const be={id:bd.id,src:bd.src,dst:bd.dst,good:bd.good,path:bd.path,cross:bd.cross||bd.path.map(()=>false),sprites:[],flow:0,
       tier:bd.tier||1,cap:CFG.beltCap["t"+(bd.tier||1)]};
     belts.push(be);
-    for(const[x,y]of be.path)cell[y][x]={t:"belt",id:be.id};
+    for(let i=0;i<be.path.length;i++){ if(!be.cross[i]){ const[x,y]=be.path[i]; cell[y][x]={t:"belt",id:be.id}; } }
     const s=nodes[be.src], d=nodes[be.dst];
     if(s&&s.type!=="splitter")s.outBelt[be.good]=be.id;
     if(d){ if(d.type==="splitter"||d.type==="merger"||d.type==="storageroom"){ if(!d.good)d.good=be.good; }
-      else if(d.type!=="terminal")d.inBelt[be.good]=be.id; }
+      else d.inBelt[be.good]=be.id; }
   }
   let maxId=nextId; for(const id in nodes)maxId=Math.max(maxId,+id+1); for(const be of belts)maxId=Math.max(maxId,be.id+1);
   nextId=maxId;
+  if(contracts.length<CONTRACT_SLOTS)fillContractSlots(); // defensive — normal play always keeps slots topped up, but don't leave a save stuck with an empty slot
   const elapsedSec=Math.max(0,((data.savedAt?Date.now()-data.savedAt:0))/1000);
   const gained=offlineCatchUp(elapsedSec);
-  if(elapsedSec>5){ setHint(`Welcome back — ${Math.round(gained)} ${ITEMS[targetGood]?ITEMS[targetGood].n:targetGood} collected while away (${fmtElapsed(elapsedSec)}).`,"ok"); }
+  if(elapsedSec>5){ setHint(`Welcome back — ${Math.round(gained)} goods delivered while away (${fmtElapsed(elapsedSec)}).`,"ok"); }
   return true;
 }
 
 // ---------------------------------------------------------------- TEST API
 window.__game={ reset, CFG, ITEMS, RECIPES,
   place:(t,x,y,r,tier)=>{ const b=place(t,x,y,r,tier); return b?b.id:null; },
-  connect:(a,b,tier)=>connect(a,b,tier),
+  connect:(a,b,tier,explicitPath,forcedGood,crossFlags)=>connect(a,b,tier,explicitPath,forcedGood,crossFlags),
   tickN:(sec)=>{ const n=Math.round(sec/CFG.dt); for(let i=0;i<n;i++)tick(CFG.dt); },
   node:id=>nodes[id],
-  state:()=>({delivered,quota,battery,brownout,
+  deleteBuilding:(id)=>deleteBuilding(id),
+  deleteBelt:(id)=>deleteBelt(id),
+  changeRecipe:(id,recipeId)=>changeRecipe(id,recipeId),
+  state:()=>({techTier,tierProgress:Object.assign({},tierProgress),tierNeed:currentTierNeed(),lifetimeDelivered,battery,brownout,
+    contracts:contracts.map(c=>Object.assign({},c)),credits,contractsCompleted,prestigeCount,prestigeMult:prestigeMult(),
+    crossingCount:Object.keys(crossings).length,
     nodes:Object.fromEntries(Object.entries(nodes).map(([k,b])=>[k,{type:b.type,util:b.util,stalled:b.stalled,inBuf:b.inBuf,outBuf:b.outBuf,buf:b.buf,rate:b.rate,tier:b.tier}])),
-    belts:belts.map(be=>({src:be.src,dst:be.dst,good:be.good,flow:be.flow,len:be.path.length,tier:be.tier,cap:be.cap}))}),
-  deposits:()=>deposits.map(d=>({x:d.x,y:d.y,good:d.good,rich:d.rich})),
+    belts:belts.map(be=>({src:be.src,dst:be.dst,good:be.good,flow:be.flow,len:be.path.length,path:be.path,cross:be.cross,tier:be.tier,cap:be.cap}))}),
+  tierUnlocked, TIERS, CONTRACT_POOL, CONTRACT_SLOTS,
+  doPrestige:()=>doPrestige(), prestigeEligible, prestigeMult,
+  crossings:()=>Object.assign({},crossings),
+  deliverToTerminal:(termId,g,amt)=>{ const b=nodes[termId]; if(b)b.inBuf[g]=(b.inBuf[g]||0)+amt; },
+  deposits:()=>deposits.map(d=>({x:d.x,y:d.y,good:d.good,rich:d.rich,discovered:!!d.discovered})),
+  scanRegion, discoverAll:()=>{ for(const d of deposits)d.discovered=true; },
   findDeposit:(good)=>{ const d=deposits.find(d=>d.good===good&&cell[d.y][d.x].t==="dep"); return d?{x:d.x,y:d.y}:null; },
   saveGame, loadGame, clearSave,
+  // driving the real pointer UI from tests, not just the data model:
+  cellPx:(x,y)=>({x:cx(x),y:cy(y)}),
+  uiState:()=>({mode,placeType,beltSrc,beltPath:beltPath.slice(),beltPathCross:beltPathCross.slice(),beltTier,scanning,scanStart,scanEnd}),
 };
 
 // ---------------------------------------------------------------- BOOT
@@ -519,7 +962,10 @@ window.addEventListener("resize",()=>{resize();}); resize();
 setInterval(saveGame,5000);
 window.addEventListener("beforeunload",saveGame);
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="hidden")saveGame(); });
-document.getElementById("newGameBtn").onclick=()=>{ if(confirm("Start a new game? This clears your save.")){ clearSave(); reset(); } };
+document.getElementById("newGameBtn").onclick=()=>{ if(confirm("Start a new game? This clears your save (including Credits and Prestige level).")){ clearSave(); reset(); buildPalette(); } };
+document.getElementById("prestigeBtn").onclick=()=>{ if(!prestigeEligible())return;
+  if(confirm(`Prestige? This clears your current factory (deposits, buildings, belts, tier progress) but keeps your Credits and permanently boosts every future extractor's rate by ${Math.round(PRESTIGE_MULT_PER_LEVEL*100)}%, stacking with any previous Prestige levels.`)){
+    const res=doPrestige(); if(res.ok){ buildPalette(); setHint(`✨ Prestige! Extractor rate is now ×${res.mult.toFixed(2)}. Factory reset, Credits and Prestige level kept.`,"ok"); } } };
 requestAnimationFrame(loop);
 })();
 </script>
