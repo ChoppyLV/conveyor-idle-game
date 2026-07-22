@@ -2,21 +2,25 @@
 
 `regression.js` drives `index.html` headlessly through Playwright and exercises the parts of
 the sim and UI that are easy to break silently: the base extractor→smelter→fabricator→terminal
-chain, the Splitter, the Merger (build rules + the supply-weighted pull equilibrium), the Storage
-Room, the Extractor tier picker (T1/T2/T3 rate math), the per-belt Belt tier caps (T1/T2),
-Scanning (fog-of-war deposit discovery), manual belt drawing (driven through the real
-pointer/canvas UI, not just the data API), belt splicing (Splitter/Merger placed directly onto
-an existing belt), tech-tier gating end-to-end (unlocking tools and extractor tiers by delivering
-to the Assembly Terminal), and save/load with offline-earnings catch-up (via a real
-`page.reload()`, not just an in-memory function call).
+chain, the Splitter, the Merger (build rules + the supply-weighted pull equilibrium, plus —
+since the 2026-07-22 multi-good belt rewrite — combining genuinely different goods onto one
+output belt), the Storage Room, the Extractor tier picker (T1/T2/T3 rate math), the per-belt
+Belt tier caps (T1/T2), Scanning (fog-of-war deposit discovery), manual belt drawing (driven
+through the real pointer/canvas UI, not just the data API), belt splicing (Splitter/Merger/Smart
+Splitter placed directly onto an existing belt), tech-tier gating end-to-end (unlocking tools and
+extractor tiers by delivering to the Assembly Terminal), the Smart Splitter's multi-good routing
+(any mix of inputs, an always-required explicit good-or-"everything else" filter per output, and
+Pavel's own worked example of a merged ferrite/cuprite/chalkstone belt split back out by good),
+Contracts, Prestige, the Elevator Overpass, and save/load with offline-earnings catch-up (via a
+real `page.reload()`, not just an in-memory function call).
 
 It talks to the game mostly through `window.__game`, the test API exposed at the bottom of
 `index.html`'s script — the same hook used to build and verify every feature in this file so far.
-The manual-belt-drawing and extractor-tier-picker sections additionally drive the **real** canvas
-via `page.mouse.click()`, using a small `cellPx(x,y)` helper on the test API (plus the canvas
-element's own `getBoundingClientRect()`) to translate grid coordinates into real page pixel
-coordinates — this exercises the actual click-by-click UI a player uses, not just the underlying
-data model.
+The manual-belt-drawing, extractor-tier-picker, and Smart-Splitter good-picker sections
+additionally drive the **real** canvas via `page.mouse.click()`, using a small `cellPx(x,y)`
+helper on the test API (plus the canvas element's own `getBoundingClientRect()`) to translate
+grid coordinates into real page pixel coordinates — this exercises the actual click-by-click UI
+a player uses, not just the underlying data model.
 
 If a future change removes or renames something on `window.__game`, or changes the pointer-event
 handling in `index.html`, this suite is what should catch it.
@@ -49,10 +53,15 @@ script that lived only in Claude's temporary cloud workspace and was never commi
 each new session either had to trust old chat history or rebuild verification from scratch. This
 file is the first attempt to break that pattern: a single, committed, cumulative regression suite
 that grows as features are added, so "does this still work" has one command to answer it instead
-of a session digging through prior conversations. It has already paid off once: extending it for
+of a session digging through prior conversations. It has already paid off twice: extending it for
 the tech-tier gating feature surfaced a real bug in the offline-catch-up test itself (a
-too-early "before" measurement was masking genuine progress), which wouldn't have been obvious
-without a single suite to run end to end and compare against.
+too-early "before" measurement was masking genuine progress); and rewriting it for the multi-good
+belt model surfaced an actual production bug in the new `distribute()`/`subtractFrom()` sim code
+— they deleted a good's key from a node's buffer once it drained near zero, which is harmless for
+a Splitter/Merger/Storage-Room/Smart-Splitter's dynamic per-good `buf`, but corrupted an
+extractor/smelter/fabricator's fixed-shape `outBuf`/`inBuf` (the next tick's `CAP - undefined`
+silently became `NaN` and poisoned that good's production forever). Neither would have been
+obvious without a single suite to run end to end and compare against.
 
 When you add a new building type, sim rule, or UI flow to `index.html`, add a section here for it
 before considering the feature done — same spirit as the Playwright verification that's already

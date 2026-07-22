@@ -158,6 +158,7 @@ const TIERS=[
 const TOOL_UNLOCK_TIER={splitter:1,merger:1,belt2:2,storageroom:2,smart_splitter:2,elevator:2}; // scan is NOT here — always unlocked, see note above
 const EXTRACTOR_TIER_UNLOCK={1:0,2:2,3:3}; // extractor tier -> techTier required
 function tierUnlocked(tool){ const req=TOOL_UNLOCK_TIER[tool]; return req===undefined?true:techTier>=req; }
+const ELSE="__else__"; // Smart Splitter catch-all output filter — see MULTI-GOOD BELTS section below
 function currentTierNeed(){ return techTier<TIERS.length?TIERS[techTier].need:[]; }
 function terminalAcceptGoods(){ return [...new Set([...currentTierNeed().map(x=>x[0]), ...contracts.map(c=>c.good)])]; }
 function advanceTier(){ const done=TIERS[techTier]; techTier++; tierProgress={};
@@ -220,9 +221,9 @@ const BUILD={
   extractor:{label:"Extractor",sub:"on deposit",color:"#d9a441"},
   smelter:{label:"Smelt. Furnace",sub:"1→1 ingot",color:"#e0864a"},
   fabricator:{label:"Fabricator",sub:"1 part",color:"#4fd1c5"},
-  splitter:{label:"Splitter",sub:"1→3",color:"#8f7fe0"},
-  merger:{label:"Merger",sub:"3→1 same good",color:"#4fb3e0"},
-  smart_splitter:{label:"Smart Splitter",sub:"multi-good combiner",color:"#e07a9e"},
+  splitter:{label:"Splitter",sub:"1→3 proportional",color:"#8f7fe0"},
+  merger:{label:"Merger",sub:"3→1 combine all",color:"#4fb3e0"},
+  smart_splitter:{label:"Smart Splitter",sub:"filter goods 1↔3",color:"#e07a9e"},
   storageroom:{label:"Storage Room",sub:"buffer",color:"#7a8a99"},
   terminal:{label:"Assembly Terminal",sub:"deliver",color:"#4fd17a"},
   generator:{label:"Generator",sub:"tap: +"+CFG.genPerClick+"kW",color:"#c8b04a"},
@@ -246,29 +247,101 @@ function revealDeposit(d){ d.discovered=true; }
 function scanRegion(x1,y1,x2,y2){ const lo_x=Math.min(x1,x2),hi_x=Math.max(x1,x2),lo_y=Math.min(y1,y2),hi_y=Math.max(y1,y2);
   let n=0; for(const d of deposits){ if(!d.discovered && d.x>=lo_x&&d.x<=hi_x&&d.y>=lo_y&&d.y<=hi_y){ revealDeposit(d); n++; } } return n; }
 // ---------------------------------------------------------------- NODES
+const MIXNODE=new Set(["splitter","merger","storageroom","smart_splitter"]); // multi-good pass-through/combine/filter nodes
 function makeNode(type,x,y,recipeId,tier){
   const id=nextId++, b={id,type,x,y,recipeId:recipeId||null,
-    inBuf:{},outBuf:{},util:0,working:false,stalled:false,
-    inBelt:{},outBelt:{}}; // per-good belt refs (strict ports)
+    inBuf:{},outBuf:{},util:0,working:false,stalled:false};
   if(type==="extractor"){ const d=cell[y][x].d; b.good=d.good; b.tier=tier||1;
     b.rate=CFG.richness[d.rich-1]*CFG.extractorMult[b.tier-1]*prestigeMult(); b.outBuf[d.good]=0; }
   if(type==="smelter"||type==="fabricator"){ const r=RECIPES[recipeId];
     r.in.forEach(([g])=>b.inBuf[g]=0); r.out.forEach(([g])=>b.outBuf[g]=0); }
-  if(type==="splitter"||type==="merger"||type==="storageroom"){ b.good=null; b.buf=0; }
-  if(type==="smart_splitter"){ b.buf={}; } // per-good buckets — unlike Merger, accepts up to 3 DIFFERENT goods on its inputs
+  if(MIXNODE.has(type)){ b.buf={}; } // per-good buckets — every mix node (Splitter/Merger/Storage Room/Smart Splitter)
+    // carries an arbitrary blend of goods now (mechanics-spec.md §1.3 rewrite, 2026-07-22): belts themselves are
+    // unlimited in *variety*, capped only in total throughput by their tier, so there's no more single ".good".
   if(type==="terminal"){ for(const g of terminalAcceptGoods())b.inBuf[g]=0; }
   nodes[id]=b; cell[y][x]={t:"bld",id}; return b;
 }
-// ports: how many belts a node accepts
-function inGoods(b){ if(b.type==="extractor")return[]; if(b.type==="splitter")return["*"]; if(b.type==="merger")return["*","*","*"]; if(b.type==="smart_splitter")return["*","*","*"]; if(b.type==="storageroom")return["*"]; if(b.type==="terminal")return terminalAcceptGoods();
-  return RECIPES[b.recipeId].in.map(x=>x[0]); }
-function outGoods(b){ if(b.type==="terminal"||b.type==="generator")return[]; if(b.type==="extractor")return[b.good];
-  if(b.type==="splitter")return["*","*","*"]; if(b.type==="merger")return[b.good]; if(b.type==="smart_splitter")return["*","*","*"]; if(b.type==="storageroom")return[b.good]; return RECIPES[b.recipeId].out.map(x=>x[0]); }
+// ports: how many belts a node has (no longer keyed by good — a single belt can carry many goods at once,
+// so "one port per good" only still applies to strictly single-good machines; mix nodes just cap belt COUNT).
 function outBeltCount(b){ return belts.filter(be=>be.src===b.id).length; }
 function inBeltCount(b){ return belts.filter(be=>be.dst===b.id).length; }
+function smartSplitterOutFilters(s){ return belts.filter(be=>be.src===s.id).map(be=>be.filterGood); }
+function smartSplitterFilterCandidates(s){ const claimed=new Set(smartSplitterOutFilters(s).filter(f=>f&&f!==ELSE));
+  return [...Object.keys(ITEMS).filter(g=>!claimed.has(g)), ELSE]; } // ELSE is always offered — any number of "everything else" outputs is fine
+function bufTotal(b){ let t=0; for(const g in(b.buf||{}))t+=b.buf[g]; return t; }
+function bufSummary(b){ const goods=Object.keys(b.buf||{}).filter(g=>b.buf[g]>1e-6); return goods.length?goods.map(g=>ITEMS[g].n+" "+Math.round(b.buf[g])).join(", "):"empty"; }
 
 // ---------------------------------------------------------------- SIM
-function roomFor(b,g){ if(b.type==="terminal")return 1e9; if(b.type==="splitter"||b.type==="merger")return CAP-(b.buf||0); if(b.type==="smart_splitter")return CAP-((b.buf&&b.buf[g])||0); if(b.type==="storageroom")return BIGCAP-(b.buf||0); return CAP-(b.inBuf[g]||0); }
+// A node's currently-available supply, as a live per-good {good:amount} reference (mutating it IS the real
+// decrement — machines still produce exactly one good per output in this MVP recipe set, but mix nodes hold
+// an arbitrary blend, hence the split here).
+function sourceAvail(s){ return MIXNODE.has(s.type) ? (s.buf=s.buf||{}) : s.outBuf; }
+// Note: this never deletes the key once it drops to ~0 — sourceAvail() can point at a MIXNODE's dynamic `buf`
+// (fine either way) OR at an extractor/smelter/fabricator's fixed-shape `outBuf` (makeNode() always initializes
+// every recipe-output good's key to 0 and every piece of downstream math assumes that key keeps existing).
+// Deleting it here left a later sim() tick doing `CAP - undefined` -> NaN, which then poisoned that good's
+// production forever (a real regression this rewrite introduced — caught by the regression suite, not a
+// hypothetical). Clamping to 0 instead of deleting keeps both node shapes correct.
+function subtractFrom(s,g,amt){ const buf=sourceAvail(s); buf[g]=Math.max(0,(buf[g]||0)-amt); }
+// 0 if the destination flatly can't use a good at all (wrong recipe input, wrong terminal need, extractor/generator);
+// otherwise its remaining buffer room for that good.
+function destRoom(d,g){
+  if(d.type==="terminal")return terminalAcceptGoods().includes(g)?1e9:0;
+  if(MIXNODE.has(d.type)){ const cap=d.type==="storageroom"?BIGCAP:CAP; return cap-(((d.buf=d.buf||{})[g])||0); }
+  if(d.type==="extractor"||d.type==="generator")return 0;
+  const ing=RECIPES[d.recipeId].in.map(x=>x[0]); if(!ing.includes(g))return 0;
+  return CAP-(d.inBuf[g]||0);
+}
+function addIn(d,g,amt){ if(amt<=0)return; if(MIXNODE.has(d.type)){ d.buf=d.buf||{}; d.buf[g]=(d.buf[g]||0)+amt; }
+  else d.inBuf[g]=(d.inBuf[g]||0)+amt; }
+
+// Push a shared multi-good `supply` (mutated in place — pass a node's REAL outBuf/buf, not a copy) out across
+// one or more (belt,dst[,filter]) branches. filter=undefined → every branch is eligible for every good (plain
+// regular belt, or a blind Splitter that doesn't care what's riding the belt). filter="__else__" (ELSE) → only
+// takes goods no OTHER branch in this same call has claimed with a specific-good filter (Smart Splitter's
+// catch-all output). filter=<good> → only that exact good may use this branch (Smart Splitter's routed output).
+// Each branch's own belt-tier cap is shared across every good that ends up riding it this tick (goods are
+// processed richest-first, depleting each branch's remaining per-tick capacity as they go).
+function distribute(supply,branches,dt){
+  const remainingCap={}; for(const br of branches)remainingCap[br.belt.id]=br.belt.cap*dt/60;
+  const claimed=new Set(branches.filter(br=>br.filter&&br.filter!==ELSE).map(br=>br.filter));
+  const goods=Object.keys(supply).filter(g=>supply[g]>1e-9).sort((a,b)=>supply[b]-supply[a]);
+  const moved={}; for(const br of branches)moved[br.belt.id]={};
+  for(const g of goods){
+    const eligible=branches.filter(br=>br.filter===undefined?true:br.filter===ELSE?!claimed.has(g):br.filter===g);
+    if(!eligible.length)continue; // nothing here wants/can carry this good — it stays put (visible backpressure)
+    const rooms=eligible.map(br=>Math.max(0,Math.min(remainingCap[br.belt.id],destRoom(br.dst,g))));
+    const totalRoom=rooms.reduce((a,x)=>a+x,0);
+    const moveTotal=Math.min(supply[g],totalRoom); if(moveTotal<=1e-9)continue;
+    for(let i=0;i<eligible.length;i++){ const share=totalRoom>0?moveTotal*rooms[i]/totalRoom:0; if(share<=1e-9)continue;
+      addIn(eligible[i].dst,g,share); remainingCap[eligible[i].belt.id]-=share;
+      moved[eligible[i].belt.id][g]=(moved[eligible[i].belt.id][g]||0)+share; supply[g]-=share; }
+    // Clamp instead of delete: `supply` is often a node's REAL outBuf/buf (see comment above), and for a
+    // single-good extractor/smelter/fabricator outBuf, deleting the key here leaves it `undefined` on the next
+    // sim() tick, where `CAP-b.outBuf[b.good]` silently becomes NaN and poisons that good's production forever
+    // (a real regression this rewrite introduced, caught by the regression suite). Safe for MIXNODE bufs too —
+    // every reader already treats near-zero/absent the same way (`||0`, `>1e-6`/`>1e-9` filters).
+    if(supply[g]<1e-9)supply[g]=0;
+  }
+  return moved;
+}
+// Pull from up to 3 (belt,src) branches into one shared destination, weighted per-good by each source's
+// available supply (mirrors distribute() — the Merger/Smart-Splitter-input symmetric dual of a Splitter).
+function collect(branches,dst,dt){
+  const remainingCap={}; for(const br of branches)remainingCap[br.belt.id]=br.belt.cap*dt/60;
+  const goodsSet=new Set(); for(const br of branches){ const av=sourceAvail(br.src); for(const g in av)if(av[g]>1e-9)goodsSet.add(g); }
+  const moved={}; for(const br of branches)moved[br.belt.id]={};
+  for(const g of goodsSet){
+    const avails=branches.map(br=>Math.max(0,Math.min(remainingCap[br.belt.id],(sourceAvail(br.src)[g]||0))));
+    const totalAvail=avails.reduce((a,x)=>a+x,0);
+    const room=destRoom(dst,g); const pullTotal=Math.min(totalAvail,room); if(pullTotal<=1e-9)continue;
+    for(let i=0;i<branches.length;i++){ const share=totalAvail>0?pullTotal*avails[i]/totalAvail:0; if(share<=1e-9)continue;
+      subtractFrom(branches[i].src,g,share); remainingCap[branches[i].belt.id]-=share;
+      moved[branches[i].belt.id][g]=(moved[branches[i].belt.id][g]||0)+share; }
+    addIn(dst,g,pullTotal);
+  }
+  return moved;
+}
 function sim(dt){
   // 1. extractors + machines
   let demand=0;
@@ -292,43 +365,30 @@ function sim(dt){
       b.util=potCycles>0?lim/potCycles:0; b.working=lim>1e-9; b.stalled=(potCycles>lim+1e-6)&&anyInput(b,r);
     }
   }
-  // 2. belts transfer (rate-based, backpressure). group splitter sources for room-weighting
-  const splitterOut={};
-  for(const be of belts){ if(nodes[be.src].type==="splitter"){ (splitterOut[be.src]=splitterOut[be.src]||[]).push(be); } }
-  const mergerIn={};
-  for(const be of belts){ if(nodes[be.dst].type==="merger"){ (mergerIn[be.dst]=mergerIn[be.dst]||[]).push(be); } }
-  for(const be of belts){
-    const s=nodes[be.src], d=nodes[be.dst];
-    if(s.type==="splitter")continue; // handled below
-    if(d.type==="merger")continue; // handled below (supply-weighted pull)
-    const g=be.good;
-    const avail=(s.type==="merger"||s.type==="storageroom")?(s.buf||0):(s.type==="smart_splitter")?((s.buf&&s.buf[g])||0):(s.outBuf[g]||0);
-    const room=roomFor(d,g);
-    const move=Math.min(be.cap*dt/60, avail, room);
-    if(move>0){ if(s.type==="merger"||s.type==="storageroom")s.buf-=move; else if(s.type==="smart_splitter")s.buf[g]-=move; else s.outBuf[g]-=move; addIn(d,g,move); flow(be,move,dt); } else flow(be,0,dt);
+  // 2. belts transfer — every belt now potentially carries several goods at once (mechanics-spec.md §1.3
+  // rewrite). Each belt is processed EXACTLY ONCE, by whichever of the three passes below applies to it:
+  //   (a) fan-IN — belts feeding a Merger or Smart Splitter (many sources -> one shared buffer, supply-weighted)
+  //   (b) fan-OUT — remaining belts leaving a Splitter or Smart Splitter (one shared buffer -> up to 3 branches,
+  //       room-weighted, filtered for Smart Splitter)
+  //   (c) everything else — a plain 1:1 belt, handled as a one-branch distribute() (identical math, just N=1)
+  const done=new Set();
+  const fanIn={};
+  for(const be of belts){ const d=nodes[be.dst]; if(d.type==="merger"||d.type==="smart_splitter")(fanIn[be.dst]=fanIn[be.dst]||[]).push(be); }
+  for(const dstId in fanIn){ const dst=nodes[dstId]; const bl=fanIn[dstId];
+    const branches=bl.map(be=>({belt:be,src:nodes[be.src]}));
+    const moved=collect(branches,dst,dt);
+    for(const be of bl){ flow(be,moved[be.id]||{},dt); done.add(be.id); }
   }
-  // mergers: pull from up to 3 inputs proportional to each input's available supply (mechanics-spec.md 1.5 — symmetric dual of the splitter)
-  for(const mid in mergerIn){ const m=nodes[mid]; const ins=mergerIn[mid];
-    const g=m.good;
-    if(!g){ for(const be of ins)flow(be,0,dt); continue; }
-    const avails=ins.map(be=>{ const src=nodes[be.src]; return Math.min(be.cap*dt/60, (src.type==="splitter"||src.type==="merger")?(src.buf||0):(src.outBuf[g]||0)); });
-    const totalAvail=avails.reduce((a,x)=>a+x,0);
-    const room=CAP-(m.buf||0);
-    const pull=Math.min(totalAvail, room);
-    for(let i=0;i<ins.length;i++){ const share=totalAvail>0?pull*avails[i]/totalAvail:0;
-      const src=nodes[ins[i].src];
-      if(share>0){ if(src.type==="splitter"||src.type==="merger")src.buf-=share; else src.outBuf[g]-=share; m.buf=(m.buf||0)+share; flow(ins[i],share,dt); }
-      else flow(ins[i],0,dt); }
+  const fanOut={};
+  for(const be of belts){ if(done.has(be.id))continue; const s=nodes[be.src]; if(s.type==="splitter"||s.type==="smart_splitter")(fanOut[be.src]=fanOut[be.src]||[]).push(be); }
+  for(const srcId in fanOut){ const s=nodes[srcId]; const bl=fanOut[srcId];
+    const branches=bl.map(be=>({belt:be,dst:nodes[be.dst],filter:be.filterGood}));
+    const moved=distribute(sourceAvail(s),branches,dt);
+    for(const be of bl){ flow(be,moved[be.id]||{},dt); done.add(be.id); }
   }
-  // splitters: pull into buffer already handled (they're a dst above via addIn->buf). Now push out room-weighted.
-  for(const sid in splitterOut){ const s=nodes[sid]; const outs=splitterOut[sid];
-    const g=s.good; if(!g){flow0(outs,dt);continue;}
-    const rooms=outs.map(be=>Math.min(be.cap*dt/60, roomFor(nodes[be.dst],g)));
-    const totalRoom=rooms.reduce((a,x)=>a+x,0);
-    const totalCap=outs.reduce((a,be)=>a+be.cap,0);
-    const avail=Math.min(s.buf, totalRoom, totalCap*dt/60);
-    for(let i=0;i<outs.length;i++){ const share=totalRoom>0?avail*rooms[i]/totalRoom:0;
-      if(share>0){ s.buf-=share; addIn(nodes[outs[i].dst],g,share); flow(outs[i],share,dt);} else flow(outs[i],0,dt); }
+  for(const be of belts){ if(done.has(be.id))continue; const s=nodes[be.src], d=nodes[be.dst];
+    const moved=distribute(sourceAvail(s),[{belt:be,dst:d}],dt);
+    flow(be,moved[be.id]||{},dt); done.add(be.id);
   }
   // 3. terminal delivery — multi-good turn-in toward the current tier's requirement
   const need=currentTierNeed();
@@ -349,20 +409,20 @@ function sim(dt){
   for(const be of belts) advSprites(be,dt);
 }
 function anyInput(b,r){ return r.in.every(([g,q])=>(b.inBuf[g]||0)>=q-1e-9); }
-function addIn(d,g,amt){ if(d.type==="smart_splitter"){ d.buf[g]=(d.buf[g]||0)+amt; }
-  else if(d.type==="splitter"||d.type==="merger"||d.type==="storageroom"){ if(!d.good)d.good=g; d.buf=(d.buf||0)+amt; }
-  else d.inBuf[g]=(d.inBuf[g]||0)+amt; }
 function powerScale(kw,dt,demand){ if(CFG.autoPower)return{f:1,d:demand};
   const need=kw*dt/60; if(battery>=demand+need)return{f:1,d:demand+need};
   const avail=Math.max(0,battery-demand); const f=need>0?Math.min(1,avail/need):1; return{f,d:demand+need*f}; }
 
 // ---------------------------------------------------------------- BELT SPRITES (hybrid visual only)
-function flow(be,move,dt){ be.flow=move*60/dt/CFG.rateScale; be._acc=(be._acc||0)+ (move/CFG.rateScale)*12; // spawn density
-  while(be._acc>=1){ be._acc-=1; be.sprites.push({p:0,g:be.good||spGood(be)}); } }
-function flow0(outs,dt){ for(const be of outs)flow(be,0,dt); }
-function spGood(be){ return nodes[be.src].good||be.good; }
+function flow(be,movedByGood,dt){ let total=0; for(const g in movedByGood)total+=movedByGood[g];
+  be.flow=total*60/dt/CFG.rateScale; be.mix=movedByGood; be._acc=(be._acc||0)+(total/CFG.rateScale)*12; // spawn density
+  while(be._acc>=1){ be._acc-=1; be.sprites.push({p:0,g:pickWeightedGood(movedByGood)}); } }
+function pickWeightedGood(mix){ const goods=Object.keys(mix).filter(g=>mix[g]>1e-9); if(!goods.length)return null;
+  if(goods.length===1)return goods[0];
+  const total=goods.reduce((a,g)=>a+mix[g],0); let r=Math.random()*total;
+  for(const g of goods){ r-=mix[g]; if(r<=0)return g; } return goods[goods.length-1]; }
 function advSprites(be,dt){ const spd=0.45*dt*CFG.rateScale/50*20; // visual speed
-  for(const s of be.sprites)s.p+=spd; be.sprites=be.sprites.filter(s=>s.p<1); if(be.sprites.length>60)be.sprites.length=60; }
+  for(const s of be.sprites)s.p+=spd; be.sprites=be.sprites.filter(s=>s.p<1&&s.g); if(be.sprites.length>60)be.sprites.length=60; }
 
 // ---------------------------------------------------------------- BELT ROUTING (strict ports + no-cross)
 function neighbors(x,y){ return [[x+1,y],[x-1,y],[x,y+1],[x,y-1]].filter(([a,b])=>a>=0&&a<GW&&b>=0&&b<GH); }
@@ -391,50 +451,50 @@ function validExplicitPath(s,d,path,crossFlags){ // player-drawn path: every cel
   }
   return true;
 }
-function connect(srcId,dstId,tier,explicitPath,forcedGood,crossFlags){ const s=nodes[srcId], d=nodes[dstId]; if(!s||!d)return{err:"missing"}; tier=(tier===2)?2:1;
-  // determine good
-  let good=null;
-  const outs=outGoods(s);
+// connect(): srcId/dstId, tier (1|2), explicitPath, forcedFilter (Smart Splitter only — a specific good id
+// or ELSE), crossFlags. `good`, where knowable below, is only used for player-facing messaging and for the
+// strict single-good ports that still exist on extractor/smelter/fabricator/terminal-hint — a belt leaving a
+// Splitter/Merger/Storage Room, or a Smart Splitter's ELSE output, is a MIX and simply isn't known in advance.
+function connect(srcId,dstId,tier,explicitPath,forcedFilter,crossFlags){ const s=nodes[srcId], d=nodes[dstId]; if(!s||!d)return{err:"missing"}; tier=(tier===2)?2:1;
+  let good=null, filter; // good: a definite single good if this belt's content is knowable now; filter: Smart Splitter's chosen output routing rule
   if(s.type==="smart_splitter"){
-    // Smart Splitter can hold several DIFFERENT goods at once (see mechanics-spec.md — Smart Splitter),
-    // so unlike Splitter/Merger there's no single s.good; the output good must be picked explicitly.
-    if(forcedGood){ good=forcedGood; }
-    else{
-      const claimed=new Set(Object.keys(s.outBelt||{}).filter(g=>s.outBelt[g]));
-      const candidates=[...new Set(belts.filter(be=>be.dst===s.id).map(be=>be.good))].filter(g=>!claimed.has(g));
-      if(candidates.length===1)good=candidates[0];
-      else if(candidates.length===0)return{err:"Smart Splitter has no unclaimed input good yet — connect an input first"};
-      else return{err:"AMBIGUOUS_GOOD",candidates};
-    }
+    if(outBeltCount(s)>=3)return{err:"Smart Splitter already has 3 outputs"};
+    if(forcedFilter){
+      if(forcedFilter!==ELSE&&smartSplitterOutFilters(s).includes(forcedFilter))return{err:"That good is already routed to another output"};
+      filter=forcedFilter; good=(filter!==ELSE)?filter:null;
+    } else return{err:"AMBIGUOUS_GOOD",candidates:smartSplitterFilterCandidates(s)};
   }
-  else if(s.type==="splitter"||s.type==="merger"||s.type==="storageroom"){ good=s.good; } else if(s.type==="extractor"){ good=s.good; }
-  else { // machine: pick an output good not already fully occupied
-    for(const g of RECIPES[s.recipeId].out.map(x=>x[0])){ if(!s.outBelt[g]){ good=g; break; } }
+  else if(s.type==="splitter"){ if(outBeltCount(s)>=3)return{err:"Splitter already has 3 outputs"}; } // a blind proportional fan-out — content is a mix, not knowable in advance
+  else if(s.type==="merger"||s.type==="storageroom"){ if(outBeltCount(s)>=1)return{err:(s.type==="merger"?"Merger":"Storage Room")+" already has an output"}; }
+  else if(s.type==="extractor"){ if(outBeltCount(s)>=1)return{err:"Extractor output already used"}; good=s.good; }
+  else if(s.type==="terminal"||s.type==="generator"){ return{err:"Nothing to connect from here"}; }
+  else { // smelter/fabricator: pick an output good not already claimed by an existing belt
+    const used=new Set(belts.filter(be=>be.src===s.id).map(be=>be.good));
+    good=RECIPES[s.recipeId].out.map(x=>x[0]).find(g=>!used.has(g));
+    if(!good)return{err:"No free output port"};
   }
-  // strict-port checks
-  if(s.type==="splitter"){ if(outBeltCount(s)>=3)return{err:"Splitter already has 3 outputs"}; }
-  else if(s.type==="smart_splitter"){ if(outBeltCount(s)>=3)return{err:"Smart Splitter already has 3 outputs"}; if(good&&s.outBelt[good])return{err:"That good already has an output port"}; }
-  else if(s.type!=="extractor"){ if(good&&s.outBelt[good])return{err:"Output port already used"}; }
-  else { if(s.outBelt[good])return{err:"Extractor output already used"}; }
-  if(!good)return{err:"No free output port"};
-  // dest accept
-  if(d.type==="terminal"){ const acceptable=terminalAcceptGoods(); if(!acceptable.includes(good))return{err:(techTier>=TIERS.length&&contracts.length===0)?"Terminal has nothing to deliver right now":"Terminal doesn't need "+ITEMS[good].n+" right now (not this tier, and no active contract wants it)"}; if(d.inBelt[good])return{err:"That input port is used"}; }
-  else if(d.type==="splitter"){ if(inBeltCount(d)>=1)return{err:"Splitter input already used"}; if(d.good&&d.good!==good)return{err:"Splitter carries "+ITEMS[d.good].n}; }
-  else if(d.type==="merger"){ if(inBeltCount(d)>=3)return{err:"Merger already has 3 inputs"}; if(d.good&&d.good!==good)return{err:"Merger carries "+ITEMS[d.good].n+" — Mergers only combine matching goods. For different goods, route them separately or use a Smart Splitter."}; }
+  // dest accept — mix nodes (Splitter/Merger/Storage Room/Smart Splitter) accept ANY good now, only belt-count caps apply
+  if(d.type==="terminal"){
+    if(good&&!terminalAcceptGoods().includes(good))return{err:(techTier>=TIERS.length&&contracts.length===0)?"Terminal has nothing to deliver right now":"Terminal doesn't need "+ITEMS[good].n+" right now (not this tier, and no active contract wants it)"};
+    // no port cap — the terminal has "1+" input ports per mechanics-spec.md and now happily takes any number of belts, mixed or not
+  }
+  else if(d.type==="splitter"){ if(inBeltCount(d)>=1)return{err:"Splitter input already used"}; }
+  else if(d.type==="merger"){ if(inBeltCount(d)>=3)return{err:"Merger already has 3 inputs"}; }
   else if(d.type==="smart_splitter"){ if(inBeltCount(d)>=3)return{err:"Smart Splitter already has 3 inputs"}; }
-  else if(d.type==="storageroom"){ if(inBeltCount(d)>=1)return{err:"Storage Room input already used"}; if(d.good&&d.good!==good)return{err:"Storage Room carries "+ITEMS[d.good].n}; }
+  else if(d.type==="storageroom"){ if(inBeltCount(d)>=1)return{err:"Storage Room input already used"}; }
   else if(d.type==="extractor"||d.type==="generator"){ return{err:"Can't feed that"}; }
-  else { const ing=RECIPES[d.recipeId].in.map(x=>x[0]); if(!ing.includes(good))return{err:ITEMS[good].n+" isn't an input here"}; if(d.inBelt[good])return{err:"That input port is used"}; }
+  else { const ing=RECIPES[d.recipeId].in.map(x=>x[0]);
+    if(inBeltCount(d)>=ing.length)return{err:"All input ports are already used"};
+    if(good&&!ing.includes(good))return{err:ITEMS[good].n+" isn't an input here"}; // a mix-sourced belt (unknown content) is allowed through — it just won't deliver anything the machine doesn't want
+  }
   let path;
   if(explicitPath){ if(!validExplicitPath(s,d,explicitPath,crossFlags))return{err:"That belt path isn't valid anymore — try drawing it again"}; path=explicitPath; }
   else { path=routeBetween(s,d); if(!path)return{err:"No clear belt path — route around, or move a machine"}; }
   const cross=crossFlags?crossFlags.slice():path.map(()=>false);
-  const be={id:nextId++,src:srcId,dst:dstId,good,path,cross,sprites:[],flow:0,tier,cap:CFG.beltCap["t"+tier]};
+  const be={id:nextId++,src:srcId,dst:dstId,good,filterGood:filter,path,cross,sprites:[],flow:0,mix:{},tier,cap:CFG.beltCap["t"+tier]};
   for(let i=0;i<path.length;i++){ const[x,y]=path[i];
     if(cross[i]){ crossings[y*GW+x]=be.id; } else { cell[y][x]={t:"belt",id:be.id}; } } // Elevator Overpass: a crossing cell keeps the belt underneath as ground-owner; this belt just registers as passing over it
   belts.push(be);
-  if(s.type==="splitter"){} else s.outBelt[good]=be.id;
-  if(d.type==="splitter"){d.good=good;} else if(d.type==="merger"||d.type==="storageroom"){ if(!d.good)d.good=good; } else d.inBelt[good]=be.id;
   return{ok:be};
 }
 
@@ -443,7 +503,7 @@ function canPlace(type,x,y){ const c=cell[y][x];
   if(type==="extractor")return c&&c.t==="dep"&&c.d.discovered;
   if(type==="splitter"||type==="merger"||type==="smart_splitter")return !c||(c.t==="belt"&&!crossings[y*GW+x]); // these may also be spliced onto an existing belt, but not where an Elevator Overpass crosses it
   return !c; }
-function spliceOnBelt(type,x,y){ // insert a Splitter/Merger into the middle of an existing belt, splitting it in two
+function spliceOnBelt(type,x,y){ // insert a Splitter/Merger/Smart Splitter into the middle of an existing belt, splitting it in two
   const c=cell[y][x]; if(!c||c.t!=="belt")return null;
   if(crossings[y*GW+x])return null; // an overpass crosses this cell — can't splice a building in mid-air
   const be=belts.find(b=>b.id===c.id); if(!be)return null;
@@ -458,15 +518,13 @@ function spliceOnBelt(type,x,y){ // insert a Splitter/Merger into the middle of 
   // before-segment reuses the original belt's id/src, now ending at the new node
   be.dst=node.id; be.path=beforePath; be.cross=beforeCross; be.sprites=[];
   for(let i=0;i<beforePath.length;i++){ if(!beforeCross[i]){ const[px,py]=beforePath[i]; cell[py][px]={t:"belt",id:be.id}; } }
-  // after-segment is a fresh belt from the new node to the original destination
-  const afterBelt={id:nextId++,src:node.id,dst:origDstId,good,path:afterPath,cross:afterCross,sprites:[],flow:0,tier,cap};
+  // after-segment is a fresh belt from the new node to the original destination. If the new node is a Smart
+  // Splitter, its one auto-created output defaults to ELSE (catch-everything) since there's no interactive
+  // picker in this non-interactive splice path — the player can wire additional filtered outputs afterward.
+  const afterFilter=(node.type==="smart_splitter")?ELSE:undefined;
+  const afterBelt={id:nextId++,src:node.id,dst:origDstId,good:(node.type==="smart_splitter")?null:good,filterGood:afterFilter,path:afterPath,cross:afterCross,sprites:[],flow:0,mix:{},tier,cap};
   belts.push(afterBelt);
   for(let i=0;i<afterPath.length;i++){ if(!afterCross[i]){ const[px,py]=afterPath[i]; cell[py][px]={t:"belt",id:afterBelt.id}; } }
-  node.good=good; if(node.type==="smart_splitter")node.buf[good]=0;
-  if(node.type!=="splitter")node.outBelt[good]=afterBelt.id; // fixes a latent gap: connect() normally sets this, but splicing builds the belt directly
-  const origDst=nodes[origDstId];
-  if(origDst&&origDst.type!=="splitter"&&origDst.type!=="merger"&&origDst.type!=="storageroom"&&origDst.type!=="terminal"){ origDst.inBelt[good]=afterBelt.id; }
-  // origSrc's outBelt[good] already correctly points at `be.id`, which is unchanged — no update needed there.
   // Port counts (inBeltCount/outBeltCount) are derived live from the belts array, so the spliced node
   // automatically shows up with 1 input + 1 output already used, same as if it had been built that way.
   return node;
@@ -478,9 +536,8 @@ function place(type,x,y,recipeId,tier){ if(!canPlace(type,x,y))return null;
   return makeNode(type,x,y,recipeId); }
 
 // ---------------------------------------------------------------- DELETE (buildings + belts)
-function tidyPortMemory(b){ // clear a stale singular "carries X" once a splitter/merger/storage room has no ports left and nothing buffered
-  if((b.type==="splitter"||b.type==="merger"||b.type==="storageroom")&&inBeltCount(b)===0&&outBeltCount(b)===0&&(b.buf||0)<=1e-6){ b.good=null; b.buf=0; }
-}
+// Note: since ports are now derived live from the belts array (no more per-good outBelt/inBelt bookkeeping —
+// see the multi-good belt rewrite above), deleting a belt needs no port cleanup at all beyond removing it.
 function deleteBelt(beltId){
   const idx=belts.findIndex(be=>be.id===beltId); if(idx<0)return false;
   const be=belts[idx];
@@ -489,11 +546,6 @@ function deleteBelt(beltId){
     else if(cell[y]&&cell[y][x]&&cell[y][x].t==="belt"&&cell[y][x].id===beltId){ cell[y][x]=null; }
   }
   belts.splice(idx,1);
-  const s=nodes[be.src], d=nodes[be.dst];
-  if(s&&s.outBelt&&s.outBelt[be.good]===beltId)delete s.outBelt[be.good];
-  if(d&&d.inBelt&&d.inBelt[be.good]===beltId)delete d.inBelt[be.good];
-  if(s)tidyPortMemory(s);
-  if(d)tidyPortMemory(d);
   return true;
 }
 function deleteBuilding(nodeId){
@@ -596,10 +648,10 @@ function drawBld(b){ const x=OX+b.x*CS, y=OY+b.y*CS, meta=BUILD[b.type];
   else if(b.recipeId)ctx.fillText(Math.round(b.util*100)+"%",x+CS/2,y+CS*0.62);
   else if(b.type==="terminal"){ const need=currentTierNeed(); const met=need.filter(([g,q])=>(tierProgress[g]||0)>=q).length;
     ctx.fillText(techTier>=TIERS.length?"MAX":met+"/"+need.length+" goods",x+CS/2,y+CS*0.62); }
-  else if(b.type==="splitter")ctx.fillText("1→3",x+CS/2,y+CS*0.62);
-  else if(b.type==="merger")ctx.fillText(inBeltCount(b)+"→1",x+CS/2,y+CS*0.62);
+  else if(b.type==="splitter")ctx.fillText("1→3 "+Math.round(bufTotal(b)),x+CS/2,y+CS*0.62);
+  else if(b.type==="merger")ctx.fillText(inBeltCount(b)+"→1 "+Math.round(bufTotal(b)),x+CS/2,y+CS*0.62);
   else if(b.type==="smart_splitter")ctx.fillText(inBeltCount(b)+"→"+outBeltCount(b),x+CS/2,y+CS*0.62);
-  else if(b.type==="storageroom")ctx.fillText(Math.round(b.buf||0)+"/"+BIGCAP,x+CS/2,y+CS*0.62);
+  else if(b.type==="storageroom")ctx.fillText(Math.round(bufTotal(b))+"/"+BIGCAP,x+CS/2,y+CS*0.62);
   // buffer gauges
   if(b.type!=="splitter"&&b.type!=="terminal"&&b.type!=="merger"&&b.type!=="storageroom"&&b.type!=="smart_splitter"){ const outs=Object.keys(b.outBuf); if(outs.length){ const g=outs[0];
     gauge(x+CS-6,y+4,4,CS-8,(b.outBuf[g]||0)/CAP,ITEMS[g].c); }
@@ -620,10 +672,10 @@ function updateAnalyze(){ const el=document.getElementById("analyzeBody"); if(!d
     else if(b.type==="terminal"){ const need=currentTierNeed();
       if(techTier>=TIERS.length){ rate="MAX TIER"; sub="all defined tiers complete"; }
       else { rate=`Tier ${techTier+1} · ${TIERS[techTier].name}`; sub=need.map(([g,q])=>`${Math.min(tierProgress[g]||0,q)}/${q} ${ITEMS[g].n}`).join(", "); } }
-    else if(b.type==="splitter"){ rate="buf "+Math.round(b.buf||0); sub="1→"+outBeltCount(b); }
-    else if(b.type==="merger"){ rate="buf "+Math.round(b.buf||0); sub=inBeltCount(b)+"→1"; }
-    else if(b.type==="smart_splitter"){ const goods=Object.keys(b.buf||{}); rate=goods.length?goods.map(g=>Math.round(b.buf[g])+" "+ITEMS[g].n).join(", "):"empty"; sub=inBeltCount(b)+" in · "+outBeltCount(b)+" out"; }
-    else if(b.type==="storageroom"){ rate="buf "+Math.round(b.buf||0)+"/"+BIGCAP; sub=b.good?ITEMS[b.good].n:"empty"; }
+    else if(b.type==="splitter"){ rate=bufSummary(b); sub="1→"+outBeltCount(b); }
+    else if(b.type==="merger"){ rate=bufSummary(b); sub=inBeltCount(b)+"→1"; }
+    else if(b.type==="smart_splitter"){ rate=bufSummary(b); sub=inBeltCount(b)+" in · "+outBeltCount(b)+" out"; }
+    else if(b.type==="storageroom"){ rate=Math.round(bufTotal(b))+"/"+BIGCAP; sub=bufSummary(b); }
     else{ const r=RECIPES[b.recipeId]; const og=r.out[0]; rate=Math.round(b.util*rpm(og[1],r.sec))+"/m "+Math.round(b.util*100)+"%";
       sub="in "+Math.round(b.inBuf[r.in[0][0]])+" · out "+Math.round(b.outBuf[og[0]]); }
     const nm=b.type==="fabricator"?RECIPES[b.recipeId].name:BUILD[b.type].label;
@@ -683,7 +735,7 @@ c.addEventListener("pointerdown",e=>{ const r=c.getBoundingClientRect(); const p
         if(!adjToTail){ setHint("That building isn't adjacent to your last belt cell yet — keep drawing toward it.","warn"); }
         else { const res=connect(beltSrc,cc.id,beltTier,beltPath.slice(),undefined,beltPathCross.slice());
           const bsrc=beltSrc, bpath=beltPath.slice(), bcross=beltPathCross.slice(), btier=beltTier;
-          if(res.err==="AMBIGUOUS_GOOD"){ beltSrc=null; beltPath=[]; beltPathCross=[]; askOutputGood(bsrc,cc.id,btier,bpath,res.candidates,bcross); }
+          if(res.err==="AMBIGUOUS_GOOD"){ beltSrc=null; beltPath=[]; beltPathCross=[]; askOutputFilter(bsrc,cc.id,btier,bpath,res.candidates,bcross); }
           else if(res.err){ setHint("⚠ "+res.err,"warn"); beltSrc=null; beltPath=[]; beltPathCross=[]; }
           else { setHint(`Belt T${beltTier} connected (${beltPath.length} cell${beltPath.length===1?'':'s'}).`,"ok"); beltSrc=null; beltPath=[]; beltPathCross=[]; } }
       } else if(!cc){
@@ -710,7 +762,9 @@ c.addEventListener("pointerdown",e=>{ const r=c.getBoundingClientRect(); const p
       else showBuildingInfo(cc.id);
     } else if(cc&&cc.t==="belt"){
       const be=belts.find(bl=>bl.id===cc.id);
-      if(be)setHint(`Belt T${be.tier} (${be.cap}/m cap) — carrying <b>${ITEMS[be.good]?ITEMS[be.good].n:be.good}</b>, flowing ${Math.round(be.flow)}/m.`);
+      if(be){ const goods=Object.keys(be.mix||{}).filter(g=>be.mix[g]>1e-6);
+        const carrying=goods.length?goods.map(g=>ITEMS[g].n+" "+Math.round(be.mix[g]*60/CFG.dt/CFG.rateScale)+"/m").join(", "):"nothing right now";
+        setHint(`Belt T${be.tier} (${be.cap}/m cap) — carrying <b>${carrying}</b>, ${Math.round(be.flow)}/m total.`); }
     }
   }
 });
@@ -756,16 +810,17 @@ function askRecipeChange(nodeId){ const b=nodes[nodeId]; if(!b)return;
       setHint(res.err?"⚠ "+res.err:`Recipe changed to ${r.name}.`, res.err?"warn":"ok"); };
     opts.appendChild(btn); }
   box.classList.add("show"); }
-function askOutputGood(beltSrcId,dstId,tier,path,candidates,crossFlags){ // Smart Splitter has several buffered goods — ask which one this new belt should carry
+function askOutputFilter(beltSrcId,dstId,tier,path,candidates,crossFlags){ // Smart Splitter output routing: pick a specific good for this branch, or "Everything else"
   const box=document.getElementById("goodPick"), opts=document.getElementById("gpOpts");
+  document.getElementById("gpTitle").textContent="Route which good to this output?";
   opts.innerHTML=""; for(const g of candidates){ const btn=document.createElement("button"); btn.className="opt";
-    btn.textContent=ITEMS[g].n;
+    btn.textContent=(g===ELSE)?"Everything else":ITEMS[g].n;
     btn.onclick=()=>{ box.classList.remove("show"); const res=connect(beltSrcId,dstId,tier,path,g,crossFlags);
       if(res.err)setHint("⚠ "+res.err,"warn");
-      else setHint(`Belt T${tier} connected (${path.length} cell${path.length===1?'':'s'}) — carrying ${ITEMS[g].n}.`,"ok"); };
+      else setHint(`Belt T${tier} connected (${path.length} cell${path.length===1?'':'s'}) — routing ${(g===ELSE)?"everything else":ITEMS[g].n}.`,"ok"); };
     opts.appendChild(btn); }
   box.classList.add("show"); }
-document.getElementById("gpCancel").onclick=()=>{ document.getElementById("goodPick").classList.remove("show"); setHint("Belt cancelled — no good was picked.","warn"); };
+document.getElementById("gpCancel").onclick=()=>{ document.getElementById("goodPick").classList.remove("show"); setHint("Belt cancelled — no filter was picked.","warn"); };
 // ---------------------------------------------------------------- BUILDING INFO (tap a building with no tool active)
 function buildingInfoRows(b){ const rows=[];
   if(b.type==="extractor"){
@@ -781,18 +836,20 @@ function buildingInfoRows(b){ const rows=[];
     rows.push(["Power draw",POWER[b.type]+" kW while working"]);
     rows.push(["Status",b.stalled?"STALLED":(b.working?"working":"idle")]);
   } else if(b.type==="splitter"){
-    rows.push(["Carries",b.good?ITEMS[b.good].n:"nothing yet"]); rows.push(["Buffer",Math.round(b.buf||0)+"/"+CAP]);
+    rows.push(["Carrying",bufSummary(b)]); rows.push(["Buffer total",Math.round(bufTotal(b))+"/"+(CAP*3)]);
     rows.push(["Ports",`${inBeltCount(b)}/1 in · ${outBeltCount(b)}/3 out`]);
+    rows.push(["Note","Splits everything on its input belt proportionally across its live outputs — it doesn't filter by good. Use a Smart Splitter to route specific goods."]);
   } else if(b.type==="merger"){
-    rows.push(["Carries",b.good?ITEMS[b.good].n:"nothing yet"]); rows.push(["Buffer",Math.round(b.buf||0)+"/"+CAP]);
+    rows.push(["Carrying",bufSummary(b)]); rows.push(["Buffer total",Math.round(bufTotal(b))+"/"+(CAP*3)]);
     rows.push(["Ports",`${inBeltCount(b)}/3 in · ${outBeltCount(b)}/1 out`]);
-    rows.push(["Note","Only combines inputs of the same good. For different goods, use a Smart Splitter."]);
+    rows.push(["Note","Combines every good from all its inputs onto one output belt."]);
   } else if(b.type==="smart_splitter"){
-    const goods=Object.keys(b.buf||{});
-    rows.push(["Buffered goods",goods.length?goods.map(g=>`${ITEMS[g].n}: ${Math.round(b.buf[g])}/${CAP}`).join(", "):"nothing yet"]);
-    rows.push(["Ports",`${inBeltCount(b)}/3 in (any goods) · ${outBeltCount(b)}/3 out (pick a good each)`]);
+    rows.push(["Buffered goods",bufSummary(b)]);
+    rows.push(["Ports",`${inBeltCount(b)}/3 in (any goods) · ${outBeltCount(b)}/3 out (each routes one good, or "everything else")`]);
+    const filters=belts.filter(be=>be.src===b.id).map(be=>be.filterGood);
+    if(filters.length)rows.push(["Routing",filters.map(f=>f===ELSE?"everything else":(ITEMS[f]?ITEMS[f].n:f)).join(", ")]);
   } else if(b.type==="storageroom"){
-    rows.push(["Holding",b.good?ITEMS[b.good].n:"nothing yet"]); rows.push(["Buffer",Math.round(b.buf||0)+"/"+BIGCAP]);
+    rows.push(["Holding",bufSummary(b)]); rows.push(["Buffer total",Math.round(bufTotal(b))+"/"+BIGCAP]);
   } else if(b.type==="terminal"){
     const need=currentTierNeed();
     if(techTier>=TIERS.length){ rows.push(["Status","All defined tiers complete"]); }
@@ -862,15 +919,18 @@ function updateHeader(){ document.getElementById("powerLbl").textContent="⚡ "+
   pb.disabled=!eligible; pb.textContent=eligible?`Prestige (+${Math.round(PRESTIGE_MULT_PER_LEVEL*100)}%)`:"Prestige"; }
 
 // ---------------------------------------------------------------- SAVE / LOAD / OFFLINE EARNINGS
-const SAVE_KEY="lineBalance_save_v3"; // v3: adds contracts/credits/prestigeCount (v2: tech-tier turn-in replaced the old single delivered/quota/targetGood)
+const SAVE_KEY="lineBalance_save_v4"; // v4: multi-good belts — splitter/merger/storageroom's `buf` is now a per-good
+// object like Smart Splitter's always was (no more single `.good`+scalar `.buf`), and belts carry a `filterGood`
+// (Smart Splitter output routing: a specific good, ELSE, or undefined for an unfiltered belt). v3 saves fall
+// through to a fresh reset() — same accepted "constants for now" tradeoff as every prior version bump.
 function saveGame(){
   try{
-    const data={ v:3, savedAt:Date.now(), nextId, battery, techTier, tierProgress, lifetimeDelivered,
+    const data={ v:4, savedAt:Date.now(), nextId, battery, techTier, tierProgress, lifetimeDelivered,
       contracts, credits, contractsCompleted, prestigeCount, crossings,
       deposits:deposits.map(d=>({x:d.x,y:d.y,good:d.good,rich:d.rich,discovered:!!d.discovered})),
       nodes:Object.values(nodes).map(b=>({id:b.id,type:b.type,x:b.x,y:b.y,recipeId:b.recipeId,
-        tier:b.tier,good:b.good,buf:b.buf,inBuf:b.inBuf,outBuf:b.outBuf})),
-      belts:belts.map(be=>({id:be.id,src:be.src,dst:be.dst,good:be.good,path:be.path,cross:be.cross,tier:be.tier})) };
+        tier:b.tier,buf:b.buf,inBuf:b.inBuf,outBuf:b.outBuf,good:b.good})),
+      belts:belts.map(be=>({id:be.id,src:be.src,dst:be.dst,good:be.good,filterGood:be.filterGood,path:be.path,cross:be.cross,tier:be.tier})) };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
   }catch(e){ /* storage unavailable — silently skip, game still runs in-memory */ }
 }
@@ -888,7 +948,7 @@ function loadGame(){
   let raw; try{ raw=localStorage.getItem(SAVE_KEY); }catch(e){ return false; }
   if(!raw)return false;
   let data; try{ data=JSON.parse(raw); }catch(e){ return false; }
-  if(!data||data.v!==3||!Array.isArray(data.nodes)||!Array.isArray(data.belts))return false; // older/unknown save format — fall through to a fresh reset()
+  if(!data||data.v!==4||!Array.isArray(data.nodes)||!Array.isArray(data.belts))return false; // older/unknown save format — fall through to a fresh reset()
   cell=Array.from({length:GH},()=>Array(GW).fill(null));
   deposits=(data.deposits||[]).map(d=>({x:d.x,y:d.y,good:d.good,rich:d.rich,discovered:!!d.discovered})); nodes={}; belts=[];
   nextId=data.nextId||1; battery=(data.battery!=null)?data.battery:CFG.batteryCap;
@@ -901,23 +961,18 @@ function loadGame(){
   for(const nd of data.nodes){
     if(nd.type==="generator"){ nodes[nd.id]={id:nd.id,type:"generator",x:nd.x,y:nd.y}; cell[nd.y][nd.x]={t:"bld",id:nd.id}; continue; }
     const b={id:nd.id,type:nd.type,x:nd.x,y:nd.y,recipeId:nd.recipeId||null,
-      inBuf:nd.inBuf||{},outBuf:nd.outBuf||{},util:0,working:false,stalled:false,inBelt:{},outBelt:{}};
+      inBuf:nd.inBuf||{},outBuf:nd.outBuf||{},util:0,working:false,stalled:false};
     if(nd.type==="extractor"){ b.good=nd.good; b.tier=nd.tier||1;
       const dep=deposits.find(d=>d.x===nd.x&&d.y===nd.y);
       b.rate=dep?CFG.richness[dep.rich-1]*CFG.extractorMult[b.tier-1]*prestigeMult():0; }
-    if(nd.type==="splitter"||nd.type==="merger"||nd.type==="storageroom"){ b.good=nd.good||null; b.buf=nd.buf||0; }
-    if(nd.type==="smart_splitter"){ b.buf=nd.buf||{}; }
+    if(MIXNODE.has(nd.type)){ b.buf=nd.buf&&typeof nd.buf==="object"?nd.buf:{}; }
     nodes[nd.id]=b; cell[nd.y][nd.x]={t:"bld",id:nd.id};
   }
   for(const bd of data.belts){
-    const be={id:bd.id,src:bd.src,dst:bd.dst,good:bd.good,path:bd.path,cross:bd.cross||bd.path.map(()=>false),sprites:[],flow:0,
+    const be={id:bd.id,src:bd.src,dst:bd.dst,good:bd.good||null,filterGood:bd.filterGood,path:bd.path,cross:bd.cross||bd.path.map(()=>false),sprites:[],flow:0,mix:{},
       tier:bd.tier||1,cap:CFG.beltCap["t"+(bd.tier||1)]};
     belts.push(be);
     for(let i=0;i<be.path.length;i++){ if(!be.cross[i]){ const[x,y]=be.path[i]; cell[y][x]={t:"belt",id:be.id}; } }
-    const s=nodes[be.src], d=nodes[be.dst];
-    if(s&&s.type!=="splitter")s.outBelt[be.good]=be.id;
-    if(d){ if(d.type==="splitter"||d.type==="merger"||d.type==="storageroom"){ if(!d.good)d.good=be.good; }
-      else d.inBelt[be.good]=be.id; }
   }
   let maxId=nextId; for(const id in nodes)maxId=Math.max(maxId,+id+1); for(const be of belts)maxId=Math.max(maxId,be.id+1);
   nextId=maxId;
@@ -929,9 +984,12 @@ function loadGame(){
 }
 
 // ---------------------------------------------------------------- TEST API
-window.__game={ reset, CFG, ITEMS, RECIPES,
+window.__game={ reset, CFG, ITEMS, RECIPES, ELSE,
   place:(t,x,y,r,tier)=>{ const b=place(t,x,y,r,tier); return b?b.id:null; },
-  connect:(a,b,tier,explicitPath,forcedGood,crossFlags)=>connect(a,b,tier,explicitPath,forcedGood,crossFlags),
+  // connect(src,dst,tier,explicitPath,forcedFilter,crossFlags) — forcedFilter is only consulted for a
+  // Smart-Splitter SOURCE: a specific good id routes that good to this output, ELSE ("__else__") makes it a
+  // catch-all for any good not claimed by another specific-good output on the same node.
+  connect:(a,b,tier,explicitPath,forcedFilter,crossFlags)=>connect(a,b,tier,explicitPath,forcedFilter,crossFlags),
   tickN:(sec)=>{ const n=Math.round(sec/CFG.dt); for(let i=0;i<n;i++)tick(CFG.dt); },
   node:id=>nodes[id],
   deleteBuilding:(id)=>deleteBuilding(id),
@@ -940,8 +998,8 @@ window.__game={ reset, CFG, ITEMS, RECIPES,
   state:()=>({techTier,tierProgress:Object.assign({},tierProgress),tierNeed:currentTierNeed(),lifetimeDelivered,battery,brownout,
     contracts:contracts.map(c=>Object.assign({},c)),credits,contractsCompleted,prestigeCount,prestigeMult:prestigeMult(),
     crossingCount:Object.keys(crossings).length,
-    nodes:Object.fromEntries(Object.entries(nodes).map(([k,b])=>[k,{type:b.type,util:b.util,stalled:b.stalled,inBuf:b.inBuf,outBuf:b.outBuf,buf:b.buf,rate:b.rate,tier:b.tier}])),
-    belts:belts.map(be=>({src:be.src,dst:be.dst,good:be.good,flow:be.flow,len:be.path.length,path:be.path,cross:be.cross,tier:be.tier,cap:be.cap}))}),
+    nodes:Object.fromEntries(Object.entries(nodes).map(([k,b])=>[k,{type:b.type,util:b.util,stalled:b.stalled,inBuf:b.inBuf,outBuf:b.outBuf,buf:b.buf?Object.assign({},b.buf):undefined,rate:b.rate,tier:b.tier}])),
+    belts:belts.map(be=>({src:be.src,dst:be.dst,good:be.good,filterGood:be.filterGood,mix:Object.assign({},be.mix),flow:be.flow,len:be.path.length,path:be.path,cross:be.cross,tier:be.tier,cap:be.cap}))}),
   tierUnlocked, TIERS, CONTRACT_POOL, CONTRACT_SLOTS,
   doPrestige:()=>doPrestige(), prestigeEligible, prestigeMult,
   crossings:()=>Object.assign({},crossings),
@@ -950,6 +1008,7 @@ window.__game={ reset, CFG, ITEMS, RECIPES,
   scanRegion, discoverAll:()=>{ for(const d of deposits)d.discovered=true; },
   findDeposit:(good)=>{ const d=deposits.find(d=>d.good===good&&cell[d.y][d.x].t==="dep"); return d?{x:d.x,y:d.y}:null; },
   saveGame, loadGame, clearSave,
+  smartSplitterFilterCandidates:(id)=>{ const b=nodes[id]; return b?smartSplitterFilterCandidates(b):[]; },
   // driving the real pointer UI from tests, not just the data model:
   cellPx:(x,y)=>({x:cx(x),y:cy(y)}),
   uiState:()=>({mode,placeType,beltSrc,beltPath:beltPath.slice(),beltPathCross:beltPathCross.slice(),beltTier,scanning,scanStart,scanEnd}),

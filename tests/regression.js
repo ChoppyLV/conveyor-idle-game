@@ -118,6 +118,11 @@ async function main() {
   }
 
   // ---------------------------------------------------------------- merger
+  // Multi-good belt rewrite (mechanics-spec.md, 2026-07-22): belts carry an unlimited variety of goods at once,
+  // capped only in total throughput by their tier — so a Merger's job is simply "combine everything you're
+  // given onto one output belt," for ANY goods, not just same-good inputs. The two same-good sub-tests below
+  // (asymmetric utilization) still hold under the new model since the underlying room-weighted math is
+  // unchanged for a single good; the different-good case (previously refused) is now the headline behavior.
   {
     const { page, pageErrors } = await freshPage(browser);
     const out = await page.evaluate(() => {
@@ -133,21 +138,45 @@ async function main() {
       const smId = G.place('smelter', 10, 5, 'smelt_ferrite');
       const fabId = G.place('fabricator', 12, 5, 'fab_plate');
       const termId = G.place('terminal', 14, 5);
-      // placed well clear of the merger's own neighbor cells (not boxing it in) so its own routing succeeds
-      const badGood = G.place('smelter', 7, 9, 'smelt_cuprite'); // to test wrong-good rejection via a 3rd input
       const c1 = G.connect(ex1, mgId), c2 = G.connect(ex2, mgId);
       const c3 = G.connect(mgId, smId), c4 = G.connect(smId, fabId), c5 = G.connect(fabId, termId);
-      const c6 = G.connect(badGood, mgId); // wrong good — cuprite into a ferrite merger, must be rejected
       G.tickN(40);
       const st = G.state();
-      return { buildOk: !c1.err && !c2.err && !c3.err && !c4.err && !c5.err, wrongGoodRejected: !!c6.err,
+      return { buildOk: !c1.err && !c2.err && !c3.err && !c4.err && !c5.err,
         ex1Util: st.nodes[ex1].util, ex2Util: st.nodes[ex2].util, lifetimeDelivered: st.lifetimeDelivered };
     });
     check('merger: 2 same-good inputs + 1 output all connect', out.buildOk, out);
-    check('merger: rejects a different-good 3rd input', out.wrongGoodRejected, out);
     check('merger: smaller producer (1000/min) saturates near 100% util', out.ex1Util > 0.95, out);
     check('merger: larger producer (3000/min) throttles to fill remaining demand (~0.6-0.75 util)', out.ex2Util > 0.55 && out.ex2Util < 0.8, out);
     check('merger: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // The headline behavior of the rewrite: a Merger now accepts and combines DIFFERENT goods onto one shared
+    // output belt — the old model rejected a 2nd input whose good didn't match the 1st (see mechanics-spec.md's
+    // superseded §1.5 for the old rule). Mix nodes no longer track a single `.good` at all; downstream sees
+    // both goods land in the same per-good `buf`.
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const depF = G.deposits().find(d => d.good === 'ferrite_ore' && d.x === 2 && d.y === 3);
+      const depC = G.deposits().find(d => d.good === 'cuprite_ore' && d.x === 6 && d.y === 2);
+      const exF = G.place('extractor', depF.x, depF.y, null, 1), smF = G.place('smelter', depF.x, depF.y + 1, 'smelt_ferrite');
+      G.connect(exF, smF, 1, []);
+      const exC = G.place('extractor', depC.x, depC.y, null, 1), smC = G.place('smelter', depC.x, depC.y + 1, 'smelt_cuprite');
+      G.connect(exC, smC, 1, []);
+      const merger = G.place('merger', 4, 5);
+      const r1 = G.connect(smF, merger, 1, [[3, 4], [3, 5]]);       // smF (2,4) -> merger (4,5)
+      const r2 = G.connect(smC, merger, 1, [[6, 4], [5, 4], [5, 5]]); // smC (6,3) -> merger (4,5), DIFFERENT good — now accepted
+      const store = G.place('storageroom', 4, 8);
+      const r3 = G.connect(merger, store, 1, [[4, 6], [4, 7]]);
+      G.tickN(20);
+      const buf = G.node(store).buf;
+      return { r1Err: r1.err || null, r2Err: r2.err || null, r3Err: r3.err || null, buf };
+    });
+    check('merger multi-good: accepts a 2nd input of a DIFFERENT good (the old model refused this)', out.r1Err === null && out.r2Err === null, out);
+    check('merger multi-good: the output belt carries both goods at once, and downstream sees both', !out.r3Err && out.buf && out.buf.ferrite_ingot > 0 && out.buf.cuprite_ingot > 0, out);
+    check('merger multi-good: zero page errors', pageErrors.length === 0, pageErrors);
     await page.close();
   }
 
@@ -375,6 +404,32 @@ async function main() {
     check('splice: zero page errors', pageErrors.length === 0, pageErrors);
     await page.close();
   }
+  {
+    // Smart Splitter spliced mid-belt: there's no interactive good-picker in this non-interactive splice path,
+    // so the auto-created "after" segment defaults its filter to ELSE (catch-everything) — the player can wire
+    // additional filtered outputs afterward (see spliceOnBelt() in index.html). This is a one-way default, not
+    // a placeholder that later gets resolved, so it's worth its own regression coverage.
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore' && d.rich === 1); // (2,3)
+      const exId = G.place('extractor', dep.x, dep.y, null, 1);
+      const smId = G.place('smelter', dep.x + 3, dep.y, 'smelt_ferrite');
+      G.connect(exId, smId); // auto-routed straight line
+      const belt = G.state().belts[0];
+      const spliceX = belt.path[0][0], spliceY = belt.path[0][1];
+      const ssId = G.place('smart_splitter', spliceX, spliceY); // splices onto the existing belt
+      const afterSplice = G.state();
+      const afterBelt = afterSplice.belts.find(b => b.src === ssId);
+      return { ssIdOk: ssId != null, splitCount: afterSplice.belts.length,
+        afterFilterIsElse: !!afterBelt && afterBelt.filterGood === G.ELSE };
+    });
+    check('splice: placing a Smart Splitter on an existing belt cell splices it in', out.ssIdOk, out);
+    check('splice: the original belt is split into two segments', out.splitCount === 2, out);
+    check('splice: the auto-created "after" segment defaults its filter to "Everything else"', out.afterFilterIsElse, out);
+    check('splice (smart splitter): zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
 
   // ---------------------------------------------------------------- tech-tier gating end-to-end (Satisfactory-
   // style milestone schedule: TIERS/TOOL_UNLOCK_TIER/EXTRACTOR_TIER_UNLOCK in index.html). Note: the gate lives
@@ -541,9 +596,9 @@ async function main() {
       const allConnectsOk = [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12].every(c => !c.err);
       const deliveredBefore = G.state().lifetimeDelivered;
       G.saveGame();
-      const raw = JSON.parse(localStorage.getItem('lineBalance_save_v3'));
+      const raw = JSON.parse(localStorage.getItem('lineBalance_save_v4'));
       raw.savedAt = Date.now() - 3600 * 1000; // pretend 1 hour passed
-      localStorage.setItem('lineBalance_save_v3', JSON.stringify(raw));
+      localStorage.setItem('lineBalance_save_v4', JSON.stringify(raw));
       const ok = window.__game.loadGame();
       const deliveredAfter = window.__game.state().lifetimeDelivered;
       const techTierAfter = window.__game.state().techTier;
@@ -561,6 +616,10 @@ async function main() {
   }
 
   // ---------------------------------------------------------------- delete tool (buildings + belts)
+  // Multi-good belt rewrite note: ports are no longer tracked as per-good `inBelt`/`outBelt` bookkeeping on
+  // each node — they're derived live from the `belts` array (see outBeltCount()/inBeltCount() in index.html),
+  // so there's nothing to "free" on delete beyond removing the belt itself. The reconnect-succeeds check below
+  // is the real evidence a port opened back up.
   {
     const { page, pageErrors } = await freshPage(browser);
     const out = await page.evaluate(() => {
@@ -573,26 +632,23 @@ async function main() {
       const beltsBefore = G.state().belts.length;
       const beltDeleteOk = G.deleteBelt(beltId);
       const beltsAfterBeltDelete = G.state().belts.length;
-      const exPortFreedAfterBeltDelete = Object.keys(G.node(ex).outBelt).length === 0;
       const reconnectAfterBeltDelete = G.connect(ex, sm, 1, []); // should succeed now the port is free again
       const nodesBeforeBldDelete = Object.keys(G.state().nodes).length;
       const bldDeleteOk = G.deleteBuilding(sm);
       const nodesAfterBldDelete = Object.keys(G.state().nodes).length;
       const beltsAfterBldDelete = G.state().belts.length; // deleting the smelter should cascade-delete its belt too
-      const exPortFreedAfterBldDelete = Object.keys(G.node(ex).outBelt).length === 0;
       // deleting an extractor should return its cell to a placeable (undiscovered-but-known) deposit spot
       const canReplaceExtractor = G.deleteBuilding(ex) && G.place('extractor', 2, 3, null, 1) !== null;
       return {
-        beltsBefore, beltDeleteOk, beltsAfterBeltDelete, exPortFreedAfterBeltDelete,
+        beltsBefore, beltDeleteOk, beltsAfterBeltDelete,
         reconnectErr: reconnectAfterBeltDelete.err || null,
-        nodesBeforeBldDelete, bldDeleteOk, nodesAfterBldDelete, beltsAfterBldDelete, exPortFreedAfterBldDelete,
+        nodesBeforeBldDelete, bldDeleteOk, nodesAfterBldDelete, beltsAfterBldDelete,
         canReplaceExtractor,
       };
     });
-    check('delete: deleteBelt() removes the belt and frees the source port', out.beltDeleteOk && out.beltsBefore === 1 && out.beltsAfterBeltDelete === 0 && out.exPortFreedAfterBeltDelete, out);
-    check('delete: the same pair can be reconnected immediately after its old belt is deleted', out.reconnectErr === null, out);
+    check('delete: deleteBelt() removes the belt', out.beltDeleteOk && out.beltsBefore === 1 && out.beltsAfterBeltDelete === 0, out);
+    check('delete: the same pair can be reconnected immediately after its old belt is deleted (ports derive live from belts, no stale bookkeeping to clean up)', out.reconnectErr === null, out);
     check('delete: deleteBuilding() cascade-deletes every belt touching that building', out.bldDeleteOk && out.beltsAfterBldDelete === 0 && out.nodesAfterBldDelete === out.nodesBeforeBldDelete - 1, out);
-    check('delete: deleting a building frees its neighbor\'s port too', out.exPortFreedAfterBldDelete, out);
     check('delete: deleting an extractor lets you place a new one on the same (still-known) deposit', out.canReplaceExtractor, out);
     check('delete: zero page errors', pageErrors.length === 0, pageErrors);
     await page.close();
@@ -677,9 +733,13 @@ async function main() {
     check('building info: "Change recipe" is enabled for an unconnected machine', changeBtnDisabled === false, changeBtnDisabled);
     check('building info: cancel closes the panel', infoHiddenAfterCancel, infoHiddenAfterCancel);
 
-    // Tier progress panel — toggled by tapping the header tier label
+    // Tier progress panel — toggled by tapping the header tier label. updateTierPanel() only (re)renders
+    // #tierPanelBody from inside the requestAnimationFrame loop, so a frame has to actually run after the
+    // click before the body has real content — read it immediately and you race the loop and see stale/empty
+    // markup regardless of game logic.
     let tpShown = await page.evaluate(() => document.getElementById('tierPanel').classList.contains('show'));
     await page.click('#tierLbl');
+    await page.waitForTimeout(100);
     tpShown = await page.evaluate(() => document.getElementById('tierPanel').classList.contains('show'));
     const tpBody = await page.textContent('#tierPanelBody');
     check('tier panel: tapping the header tier label opens it', tpShown, tpShown);
@@ -689,12 +749,12 @@ async function main() {
     await page.close();
   }
 
-  // ---------------------------------------------------------------- Smart Splitter (multi-good combiner)
-  // Scoped answer to "conveyors should carry multiple goods / smart splitters to detach a good": belts stay
-  // single-good (no rewrite of the strict-port belt model), but this new building can hold up to 3 DIFFERENT
-  // goods at once (unlike Merger, which is same-good-only) and lets you pick which one each output belt draws —
-  // see mechanics-spec.md "Smart Splitter" for the full writeup, including why a plain Merger correctly refuses
-  // to combine two different ores (that rejection is almost certainly what read as "mergers don't work").
+  // ---------------------------------------------------------------- Smart Splitter (multi-good router)
+  // Multi-good belt rewrite (mechanics-spec.md, 2026-07-22): a Smart Splitter accepts a belt carrying any mix
+  // of goods and lets the player assign specific goods to specific outputs (up to 3), with any output
+  // configurable as "everything else" — a catch-all for any good not claimed by a specific-good output.
+  // Unlike a plain Splitter (blind, proportional, doesn't look at content) or a Merger (combines everything,
+  // no filtering), this is the one building that actually routes by good.
   {
     const { page, pageErrors } = await freshPage(browser);
     const out = await page.evaluate(() => {
@@ -709,36 +769,10 @@ async function main() {
     await page.close();
   }
   {
-    // Control: this is the behavior that's almost certainly behind "mergers don't work / can't connect a 2nd
-    // conveyor lane" — a Merger accepts a 2nd input belt just fine as long as it's the SAME good (confirmed
-    // repeatedly by direct reproduction — see work18_debug.js/work18_debug2.js in the session's debug history,
-    // both of which connected a 2nd same-good input with zero errors). What a Merger correctly REFUSES is a 2nd
-    // input of a DIFFERENT good — that's not a bug, it's the "same-good only" rule mechanics-spec.md documents,
-    // and Smart Splitter (below) is the real answer for combining different goods at one node.
     const { page, pageErrors } = await freshPage(browser);
     const out = await page.evaluate(() => {
       const G = window.__game;
-      const depF = G.deposits().find(d => d.good === 'ferrite_ore' && d.x === 2 && d.y === 3);
-      const depC = G.deposits().find(d => d.good === 'cuprite_ore' && d.x === 6 && d.y === 2);
-      const exF = G.place('extractor', depF.x, depF.y, null, 1), smF = G.place('smelter', depF.x, depF.y + 1, 'smelt_ferrite');
-      G.connect(exF, smF, 1, []);
-      const exC = G.place('extractor', depC.x, depC.y, null, 1), smC = G.place('smelter', depC.x, depC.y + 1, 'smelt_cuprite');
-      G.connect(exC, smC, 1, []);
-      const merger = G.place('merger', 4, 5);
-      const r1 = G.connect(smF, merger, 1, [[3, 4], [3, 5]]);       // smF (2,4) -> merger (4,5)
-      const r2 = G.connect(smC, merger, 1, [[6, 4], [5, 4], [5, 5]]); // smC (6,3) -> merger (4,5), DIFFERENT good
-      return { r1Err: r1.err || null, r2Err: r2.err || null, mergerGood: G.node(merger).good };
-    });
-    check('control: a Merger accepts its first input and records the good it now carries', out.r1Err === null && out.mergerGood === 'ferrite_ingot', out);
-    check('control: a Merger correctly REFUSES a 2nd input of a DIFFERENT good (by design — not the reported bug)', !!out.r2Err, out);
-    check('control: zero page errors', pageErrors.length === 0, pageErrors);
-    await page.close();
-  }
-  {
-    const { page, pageErrors } = await freshPage(browser);
-    const out = await page.evaluate(() => {
-      const G = window.__game;
-      const term = G.place('terminal', 8, 6);
+      const term = G.place('terminal', 14, 9);
       G.deliverToTerminal(term, 'ferrite_plate', 30); G.tickN(1);
       G.deliverToTerminal(term, 'castcrete', 20); G.deliverToTerminal(term, 'ferrite_rod', 20); G.deliverToTerminal(term, 'braided_cable', 20); G.tickN(1);
       const unlockedAtTier2 = G.tierUnlocked('smart_splitter');
@@ -749,46 +783,97 @@ async function main() {
       G.connect(exF, smF, 1, []);
       const exC = G.place('extractor', depC.x, depC.y, null, 1), smC = G.place('smelter', depC.x, depC.y + 1, 'smelt_cuprite');
       G.connect(exC, smC, 1, []);
-      const ss = G.place('smart_splitter', 4, 4);
+      const ss = G.place('smart_splitter', 4, 5);
 
-      // Smart Splitter: BOTH different-good inputs must succeed (a Merger would refuse the 2nd — see control above).
-      const r1 = G.connect(smF, ss, 1, [[3, 4]]);          // smF (2,4) -> ss (4,4)
-      const r2 = G.connect(smC, ss, 1, [[5, 3], [5, 4]]);  // smC (6,3) -> ss (4,4), DIFFERENT good
+      // A Smart Splitter accepts any mix of inputs, same as a Merger now does — auto-routed (BFS) rather than
+      // hand-drawn paths, since this test cares about the routing/filter logic, not the manual-draw UI.
+      const r1 = G.connect(smF, ss);
+      const r2 = G.connect(smC, ss);
       G.tickN(3);
       const buf = G.node(ss).buf;
 
-      // Output side: ambiguous when 2+ goods are buffered; forcedGood resolves it; per-good dedup on a 2nd claim.
-      const fabRod = G.place('fabricator', 4, 6, 'fab_rod'); // wants ferrite_ingot
-      const ambiguous = G.connect(ss, fabRod, 1, [[4, 5]]);
-      const outWithGood = G.connect(ss, fabRod, 1, [[4, 5]], 'ferrite_ingot');
-      const dupSameGood = G.connect(ss, G.place('fabricator', 4, 3, 'fab_rod'), 1, [], 'ferrite_ingot'); // same good again -> refused (port already claimed); ss's only free neighbor left is (4,3), direct adjacency
+      // Output side: connecting FROM a Smart Splitter is ALWAYS ambiguous without an explicit forced good/ELSE —
+      // this is a routing *configuration* choice, not something inferred from whatever's currently buffered
+      // (the old model only asked when 2+ goods happened to be buffered at connect-time). The check fires
+      // before any destination/path validation, so a throwaway destination is enough to probe it.
+      const fabRod = G.place('fabricator', 8, 5, 'fab_rod'); // wants ferrite_ingot
+      const ambiguous = G.connect(ss, fabRod);
+      const candidateCountBeforeAnyOutput = ambiguous.candidates ? ambiguous.candidates.length : -1;
+      const outWithGood = G.connect(ss, fabRod, 1, undefined, 'ferrite_ingot');
+      const dupSameGood = G.connect(ss, fabRod, 1, undefined, 'ferrite_ingot'); // same good again -> refused, before path is even considered
+      const candidatesAfterOneClaim = G.smartSplitterFilterCandidates(ss);
+      const store = G.place('storageroom', 4, 8);
+      const elseOut = G.connect(ss, store, 1, undefined, G.ELSE);
 
       return {
-        unlockedAtTier2,
+        unlockedAtTier2, itemCount: Object.keys(G.ITEMS).length,
         r1Err: r1.err || null, r2Err: r2.err || null, buf,
-        ambiguousErr: ambiguous.err, ambiguousCandidates: ambiguous.candidates,
+        ambiguousErr: ambiguous.err, candidateCountBeforeAnyOutput,
         outWithGoodOk: !!outWithGood.ok, outGood: outWithGood.ok ? outWithGood.ok.good : null,
         dupSameGoodErr: dupSameGood.err || null,
+        candidatesAfterOneClaim,
+        elseOutOk: !!elseOut.ok, elseOutGood: elseOut.ok ? elseOut.ok.good : 'unset',
       };
     });
     check('smart splitter: unlocked at Tier 2', out.unlockedAtTier2, out);
-    check('smart splitter: accepts two DIFFERENT-good inputs (ferrite_ingot + cuprite_ingot) that a Merger would refuse', out.r1Err === null && out.r2Err === null, out);
+    check('smart splitter: accepts two DIFFERENT-good inputs (ferrite_ingot + cuprite_ingot) with no rejection — a Merger would accept these too now', out.r1Err === null && out.r2Err === null, out);
     check('smart splitter: buffers each input good separately', out.buf && out.buf.ferrite_ingot > 0 && out.buf.cuprite_ingot > 0, out.buf);
-    check('smart splitter: connecting an output with 2+ buffered goods and no forced good is ambiguous', out.ambiguousErr === 'AMBIGUOUS_GOOD' && Array.isArray(out.ambiguousCandidates) && out.ambiguousCandidates.length === 2, out);
+    check('smart splitter: connecting an output with no forced good is always ambiguous, offering every game good plus "everything else"', out.ambiguousErr === 'AMBIGUOUS_GOOD' && out.candidateCountBeforeAnyOutput === out.itemCount + 1, out);
     check('smart splitter: supplying an explicit good resolves the connection and the belt carries exactly that good', out.outWithGoodOk && out.outGood === 'ferrite_ingot', out);
-    check('smart splitter: a 2nd output of the SAME already-claimed good is refused (one output port per good)', !!out.dupSameGoodErr, out);
+    check('smart splitter: a 2nd output of the SAME already-claimed good is refused (one output per specific good)', !!out.dupSameGoodErr, out);
+    check('smart splitter: the claimed good drops out of future candidate lists; "everything else" always remains available', !out.candidatesAfterOneClaim.includes('ferrite_ingot') && out.candidatesAfterOneClaim.length === out.itemCount, out);
+    check('smart splitter: ELSE is a valid forced filter and creates an unfiltered catch-all output', out.elseOutOk && out.elseOutGood === null, out);
     check('smart splitter: zero page errors', pageErrors.length === 0, pageErrors);
     await page.close();
   }
   {
+    // Pavel's own worked example (session request): a belt carrying ferrite_ore + cuprite_ore + chalkstone all
+    // merged together, then a Smart Splitter routing ferrite_ore to one output, cuprite_ore to another, and
+    // chalkstone falling through to the "everything else" catch-all third output.
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const mg = G.place('merger', 3, 5);
+      const depFe = G.deposits().find(d => d.good === 'ferrite_ore');
+      const depCu = G.deposits().find(d => d.good === 'cuprite_ore');
+      const depCh = G.deposits().find(d => d.good === 'chalkstone');
+      const exFe = G.place('extractor', depFe.x, depFe.y, null, 1);
+      const exCu = G.place('extractor', depCu.x, depCu.y, null, 1);
+      const exCh = G.place('extractor', depCh.x, depCh.y, null, 1);
+      const cB = G.connect(exFe, mg), cC = G.connect(exCu, mg), cD = G.connect(exCh, mg);
+      const ss = G.place('smart_splitter', 6, 5);
+      const outFe = G.place('storageroom', 9, 2);  // "left"
+      const outCu = G.place('storageroom', 12, 5); // "right"
+      const outElse = G.place('storageroom', 9, 8); // "straight" / else
+      const cA = G.connect(mg, ss);
+      const r1 = G.connect(ss, outFe, 1, undefined, 'ferrite_ore');
+      const r2 = G.connect(ss, outCu, 1, undefined, 'cuprite_ore');
+      const r3 = G.connect(ss, outElse, 1, undefined, G.ELSE);
+      G.tickN(30);
+      return {
+        errs: [cA.err, r1.err, r2.err, r3.err, cB.err, cC.err, cD.err],
+        outFe: G.node(outFe).buf, outCu: G.node(outCu).buf, outElse: G.node(outElse).buf,
+      };
+    });
+    check('smart splitter (worked example): every connection succeeds', out.errs.every(e => !e), out);
+    check('smart splitter (worked example): ferrite_ore routes to its dedicated output only', out.outFe.ferrite_ore > 0 && !out.outFe.cuprite_ore && !out.outFe.chalkstone, out.outFe);
+    check('smart splitter (worked example): cuprite_ore routes to its dedicated output only', out.outCu.cuprite_ore > 0 && !out.outCu.ferrite_ore && !out.outCu.chalkstone, out.outCu);
+    check('smart splitter (worked example): chalkstone (unclaimed by either specific output) falls to "everything else"', out.outElse.chalkstone > 0 && !out.outElse.ferrite_ore && !out.outElse.cuprite_ore, out.outElse);
+    check('smart splitter (worked example): zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
     // Real UI: place a Smart Splitter, wire two different-good chains into it by hand, and confirm the
-    // good-picker modal actually appears (and works) when drawing an output belt out of it.
+    // good-picker modal appears for EVERY output belt drawn out of it (not just when 2+ goods happen to be
+    // buffered — routing is configured up front) and that it offers every game good plus "Everything else",
+    // shrinking as outputs claim specific goods.
     const { page, pageErrors } = await freshPage(browser);
     async function clickCell(page, x, y) {
       const p = await page.evaluate(([x, y]) => window.__game.cellPx(x, y), [x, y]);
       const rect = await page.evaluate(() => { const r = document.getElementById('c').getBoundingClientRect(); return { left: r.left, top: r.top }; });
       await page.mouse.click(rect.left + p.x, rect.top + p.y);
     }
+    const itemCount = await page.evaluate(() => Object.keys(window.__game.ITEMS).length);
     await page.evaluate(() => {
       const G = window.__game;
       const term = G.place('terminal', 8, 6);
@@ -797,30 +882,47 @@ async function main() {
     });
     await page.click('[data-t="smart_splitter"]');
     await clickCell(page, 6, 4);
-    const ids = await page.evaluate(() => {
+    await page.evaluate(() => {
       const G = window.__game;
       const exC = G.place('extractor', 6, 2, null, 1), smC = G.place('smelter', 7, 2, 'smelt_cuprite');
       G.connect(exC, smC, 1, []);
       const exF = G.place('extractor', 3, 7, null, 1), smF = G.place('smelter', 4, 7, 'smelt_ferrite');
       G.connect(exF, smF, 1, []);
-      return { smC, smF };
     });
     await page.click('[data-t="belt1"]');
     await clickCell(page, 7, 2); await clickCell(page, 7, 3); await clickCell(page, 6, 3); await clickCell(page, 6, 4);
     await page.click('[data-t="belt1"]');
     await clickCell(page, 4, 7); await clickCell(page, 5, 7); await clickCell(page, 5, 6); await clickCell(page, 5, 5); await clickCell(page, 6, 5); await clickCell(page, 6, 4);
     await page.evaluate(() => window.__game.tickN(3));
+
+    // 1st output: the picker must appear even though nothing forces ambiguity via buffered-good count.
     await page.evaluate(() => window.__game.place('fabricator', 8, 4, 'fab_rod'));
     await page.click('[data-t="belt1"]');
     await clickCell(page, 6, 4); await clickCell(page, 7, 4); await clickCell(page, 8, 4);
-    const modalShown = await page.evaluate(() => document.getElementById('goodPick').classList.contains('show'));
-    const opts = await page.$$eval('#gpOpts .opt', els => els.map(e => e.textContent));
-    const btns = await page.$$('#gpOpts .opt');
-    const idx = opts.findIndex(o => o.includes('Ferrite Ingot'));
-    if (idx >= 0) await btns[idx].click();
-    const hint = await page.textContent('#hint');
-    check('smart splitter (real UI): drawing an output belt with 2 buffered goods opens the good-picker modal', modalShown && opts.length === 2, { modalShown, opts });
-    check('smart splitter (real UI): picking a good from the modal completes the belt carrying that good', /connected/i.test(hint) && /Ferrite Ingot/i.test(hint), hint);
+    const modalShown1 = await page.evaluate(() => document.getElementById('goodPick').classList.contains('show'));
+    const opts1 = await page.$$eval('#gpOpts .opt', els => els.map(e => e.textContent));
+    let btns = await page.$$('#gpOpts .opt');
+    const idx1 = opts1.findIndex(o => o.includes('Ferrite Ingot'));
+    if (idx1 >= 0) await btns[idx1].click();
+    const hint1 = await page.textContent('#hint');
+
+    // 2nd output: Ferrite Ingot must no longer be offered (claimed by the 1st output); "Everything else" stays.
+    // ss's only remaining free neighbor is (5,4) — (7,4)/(6,3)/(6,5) are all now claimed by belts drawn above.
+    await page.evaluate(() => window.__game.place('fabricator', 5, 3, 'fab_filament'));
+    await page.click('[data-t="belt1"]');
+    await clickCell(page, 6, 4); await clickCell(page, 5, 4); await clickCell(page, 5, 3);
+    const modalShown2 = await page.evaluate(() => document.getElementById('goodPick').classList.contains('show'));
+    const opts2 = await page.$$eval('#gpOpts .opt', els => els.map(e => e.textContent));
+    btns = await page.$$('#gpOpts .opt');
+    const idx2 = opts2.findIndex(o => o === 'Everything else');
+    if (idx2 >= 0) await btns[idx2].click();
+    const hint2 = await page.textContent('#hint');
+
+    check('smart splitter (real UI): drawing an output belt opens the good-picker modal', modalShown1, { modalShown1 });
+    check('smart splitter (real UI): the 1st output offers every game good plus "Everything else"', opts1.length === itemCount + 1 && opts1.includes('Everything else'), { opts1, itemCount });
+    check('smart splitter (real UI): picking a good from the modal completes the belt carrying that good', /connected/i.test(hint1) && /Ferrite Ingot/i.test(hint1), hint1);
+    check('smart splitter (real UI): the 2nd output\'s modal no longer offers the already-claimed good, but still offers "Everything else"', modalShown2 && !opts2.includes('Ferrite Ingot') && opts2.includes('Everything else') && opts2.length === itemCount, { modalShown2, opts2, itemCount });
+    check('smart splitter (real UI): picking "Everything else" completes the belt as the catch-all output', /connected/i.test(hint2) && /everything else/i.test(hint2), hint2);
     check('smart splitter (real UI): zero page errors', pageErrors.length === 0, pageErrors);
     await page.close();
   }
@@ -966,7 +1068,7 @@ async function main() {
     await page.close();
   }
 
-  // ---------------------------------------------------------------- save/load v3 (contracts + credits + prestige)
+  // ---------------------------------------------------------------- save/load v4 (contracts + credits + prestige)
   {
     const { page, pageErrors } = await freshPage(browser);
     const before = await page.evaluate(() => {
@@ -984,10 +1086,10 @@ async function main() {
     await page.reload();
     await page.waitForFunction(() => window.__game);
     const after = await page.evaluate(() => window.__game.state());
-    check('save/load v3: Credits survive a real page.reload()', after.credits === before.credits && after.credits > 0, { before: before.credits, after: after.credits });
-    check('save/load v3: contractsCompleted survives a real page.reload()', after.contractsCompleted === before.contractsCompleted, { before: before.contractsCompleted, after: after.contractsCompleted });
-    check('save/load v3: active contracts (incl. in-progress amounts) survive a real page.reload()', after.contracts.length === before.contracts.length, { before: before.contracts, after: after.contracts });
-    check('save/load v3: zero page errors', pageErrors.length === 0, pageErrors);
+    check('save/load v4: Credits survive a real page.reload()', after.credits === before.credits && after.credits > 0, { before: before.credits, after: after.credits });
+    check('save/load v4: contractsCompleted survives a real page.reload()', after.contractsCompleted === before.contractsCompleted, { before: before.contractsCompleted, after: after.contractsCompleted });
+    check('save/load v4: active contracts (incl. in-progress amounts) survive a real page.reload()', after.contracts.length === before.contracts.length, { before: before.contracts, after: after.contracts });
+    check('save/load v4: zero page errors', pageErrors.length === 0, pageErrors);
     await page.close();
   }
 
