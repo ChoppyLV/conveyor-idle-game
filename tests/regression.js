@@ -1443,6 +1443,220 @@ async function main() {
     await page.close();
   }
 
+  // ---------------------------------------------------------------- playtest round 1, fix #1 (Android ghost
+  // click): the canvas pointerdown handler must call preventDefault() so a real device doesn't fire a delayed
+  // synthetic "click" that can land on whatever modal button opened underneath the tap and silently pick it.
+  // Playwright can't reproduce Android's actual synthetic-click generation, so this asserts the fix at the
+  // level that actually prevents it — event.defaultPrevented on the real pointerdown — rather than trying to
+  // simulate the browser-internal compat-click behavior itself.
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore');
+      const p = G.cellPx(dep.x, dep.y);
+      // cellPx() is canvas-LOCAL (mirrors the game's own cx()/cy()); there's a real <header> above the canvas
+      // in normal document flow, so the canvas's own bounding rect is never (0,0) — must add it to get real
+      // viewport coordinates for elementFromPoint/clientX/clientY, same as the existing extractor-tier-picker
+      // test does via page.mouse.click(rect.left+pt.x, rect.top+pt.y).
+      const r = document.getElementById('c').getBoundingClientRect();
+      const absX = r.left + p.x, absY = r.top + p.y;
+      const el = document.elementFromPoint(absX, absY) || document.getElementById('c');
+      const ev = new PointerEvent('pointerdown', { clientX: absX, clientY: absY, bubbles: true, cancelable: true });
+      el.dispatchEvent(ev);
+      return { defaultPrevented: ev.defaultPrevented };
+    });
+    check('Android ghost-click fix: canvas pointerdown calls preventDefault (suppresses the synthetic compat click)', out.defaultPrevented === true, out);
+    check('Android ghost-click fix: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- playtest round 1, fix #2 (info shields):
+  // flooring the on-grid label font at a real mobile cell size (fLabel()) made "too small to read" labels
+  // legible, but this session also found and fixed a follow-on bug it introduced — a floored-size label like
+  // "Extractor" is often wider than the cell itself, so it overflows onto the #0d1015 canvas background, which
+  // is the EXACT color the label's own fill uses for contrast against the building box. Without the lblText()
+  // outline, that overflow is literally invisible (dark-on-identical-dark). This pixel-samples the overflow
+  // region directly — the only way to actually catch this class of bug, since every data-layer check and even
+  // the headless "zero page errors" checks stayed green the whole time this bug existed.
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    await page.setViewportSize({ width: 400, height: 700 }); // real small mobile CS, not the CS=40 desktop default
+    await new Promise(r => setTimeout(r, 150)); // let the resize listener + next rAF-driven draw() settle
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore');
+      G.place('extractor', dep.x, dep.y, null, 1);
+      const c = document.getElementById('c'), ctx = c.getContext('2d'); // same context the game itself draws with
+      const p0 = G.cellPx(dep.x, dep.y), p1 = G.cellPx(dep.x + 1, dep.y);
+      const CS = p1.x - p0.x; // cell size, derived without reaching into the game's own closed-over CS
+      const label = 'Extractor';
+      // mirrors fLabel(0.18,'bold')'s own formula (index.html, "info shields" section) — kept in sync deliberately,
+      // since this test exists specifically to catch a regression in that formula's interaction with box width
+      ctx.font = `bold ${Math.max(9, Math.round(CS * 0.18))}px sans-serif`;
+      const textW = ctx.measureText(label).width;
+      const bg = { r: 0x0d, g: 0x10, b: 0x15 };
+      const cx0 = p0.x, cy0 = p0.y - CS / 2 + CS * 0.42; // cellPx returns the cell CENTER; label baseline is CS*0.42 down from the cell's top edge
+      // scan a small box rather than one exact pixel — a single-pixel sample can land between glyph strokes or
+      // right at the antialiased baseline edge and miss real ink that's clearly there a few pixels away.
+      const regionHasInk = (bx, by, halfW, halfH) => {
+        const x0 = Math.max(0, Math.round(bx - halfW)), y0 = Math.max(0, Math.round(by - halfH));
+        const w = Math.round(halfW * 2), h = Math.round(halfH * 2);
+        const d = ctx.getImageData(x0, y0, w, h).data;
+        for (let i = 0; i < d.length; i += 4) {
+          if (Math.abs(d[i] - bg.r) >= 12 || Math.abs(d[i + 1] - bg.g) >= 12 || Math.abs(d[i + 2] - bg.b) >= 12) return true;
+        }
+        return false;
+      };
+      // a box a few px inside the label's LEFT edge, past the building box's own edge (box half-width CS/2-2)
+      const overflowing = textW / 2 > CS / 2 - 2;
+      const hasInk = regionHasInk(cx0 - textW / 2 + 4, cy0 - 3, 4, 6);
+      return { CS, textW, overflowing, hasInk };
+    });
+    check('info shields: "Extractor" label is actually wider than the cell at a real mobile CS (test is exercising the overflow case, not a no-op)', out.overflowing, out);
+    check('info shields: the overflowing part of the building label is visible against the #0d1015 background, not swallowed by it', out.hasInk, out);
+    check('info shields: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- playtest round 1, fix #2 (info shields):
+  // deposits previously had zero text label at all (just a color-coded circle) — this was likely the single
+  // biggest driver of the #1 unanimous "can't tell what's on the grid" complaint. Confirms the ore-name label
+  // now renders as visible pixels above a discovered deposit.
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    await page.setViewportSize({ width: 400, height: 700 });
+    await new Promise(r => setTimeout(r, 150));
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore');
+      const c = document.getElementById('c'), ctx = c.getContext('2d');
+      const p0 = G.cellPx(dep.x, dep.y), p1 = G.cellPx(dep.x + 1, dep.y);
+      const CS = p1.x - p0.x;
+      const cx0 = p0.x, cy0 = p0.y - CS * 0.36; // matches the deposit ore-name label's own y-offset in index.html
+      const bg = { r: 0x0d, g: 0x10, b: 0x15 };
+      // scan a small box around the label's anchor point rather than one exact pixel — see the building-label
+      // test above for why a single-pixel sample is too easy to accidentally land between glyph strokes.
+      const x0 = Math.max(0, Math.round(cx0 - 10)), y0 = Math.max(0, Math.round(cy0 - 6));
+      const d = ctx.getImageData(x0, y0, 20, 12).data;
+      let hasInk = false;
+      for (let i = 0; i < d.length; i += 4) {
+        if (Math.abs(d[i] - bg.r) >= 12 || Math.abs(d[i + 1] - bg.g) >= 12 || Math.abs(d[i + 2] - bg.b) >= 12) { hasInk = true; break; }
+      }
+      return { hasInk };
+    });
+    check('info shields: deposit ore-name label renders visible pixels above a discovered deposit (used to be a bare unlabeled circle)', out.hasInk, out);
+    check('info shields: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- playtest round 1, fix #3 (first-run hint):
+  // the building-info panel and tier-progress panel already existed but no tester ever found either. The first
+  // successful placement now appends a one-time tip; must fire exactly once (persisted via localStorage, so it
+  // survives a New Game / clearSave, unlike techTier-based state) and never again on the same origin/profile.
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const clickCell = async (x, y) => {
+      await page.evaluate(([gx, gy]) => {
+        const G = window.__game;
+        const p = G.cellPx(gx, gy);
+        // cellPx() is canvas-LOCAL; add the canvas's own bounding rect to get real viewport coordinates,
+        // since the real <header> above the canvas means that rect is never (0,0).
+        const r = document.getElementById('c').getBoundingClientRect();
+        const absX = r.left + p.x, absY = r.top + p.y;
+        const el = document.elementFromPoint(absX, absY) || document.getElementById('c');
+        el.dispatchEvent(new PointerEvent('pointerdown', { clientX: absX, clientY: absY, bubbles: true }));
+      }, [x, y]);
+      await new Promise(r => setTimeout(r, 30));
+    };
+    const deps = await page.evaluate(() => window.__game.deposits().filter(d => d.discovered));
+    // extractor placement is two taps in the real UI: tap the deposit (opens the T1/T2/T3 tier-picker modal),
+    // then tap a tier option to actually place it — mirrors the existing extractor-tier-picker test's flow.
+    await page.click('[data-t="extractor"]');
+    await clickCell(deps[0].x, deps[0].y);
+    await page.click('#rpOpts .opt');
+    const hint1 = await page.textContent('#hint');
+    // second placement, same page/session — the tip must not repeat
+    await page.click('[data-t="extractor"]');
+    await clickCell(deps[1].x, deps[1].y);
+    await page.click('#rpOpts .opt');
+    const hint2 = await page.textContent('#hint');
+    check('first-run hint: fires on the first successful placement', /Tip:/.test(hint1) && /tap any building/.test(hint1), hint1);
+    check('first-run hint: does not repeat on a second placement in the same session', !/Tip:/.test(hint2), hint2);
+    check('first-run hint: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // a brand-new isolated page/context (no localStorage carried over) sees the tip again, same as a real
+    // player's first-ever session would — confirms the "once ever per browser profile" behavior isn't
+    // accidentally "once ever globally" or broken some other way.
+    const { page, pageErrors } = await freshPage(browser);
+    const hint = await page.evaluate(async () => {
+      const G = window.__game;
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore');
+      document.querySelector('.tool[data-t="extractor"]').click();
+      const p = G.cellPx(dep.x, dep.y);
+      const r = document.getElementById('c').getBoundingClientRect();
+      const absX = r.left + p.x, absY = r.top + p.y;
+      const el = document.elementFromPoint(absX, absY) || document.getElementById('c');
+      el.dispatchEvent(new PointerEvent('pointerdown', { clientX: absX, clientY: absY, bubbles: true }));
+      await new Promise(r => setTimeout(r, 30));
+      document.querySelector('#rpOpts .opt').click();
+      await new Promise(r => setTimeout(r, 30));
+      return document.getElementById('hint').textContent;
+    });
+    check('first-run hint: a fresh browser profile sees the tip on its own first placement (not suppressed by another test\'s run)', /Tip:/.test(hint), hint);
+    check('first-run hint (fresh profile): zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- playtest round 1, fix list #6 (Tier 2
+  // difficulty cliff): all 3 testers struggled far more once they hit the tier requiring multiple simultaneous
+  // goods. advanceTier() now appends a one-shot contextual line whenever the newly-started tier needs strictly
+  // more simultaneous goods than the tier just completed — Tier 1 ("Flow", 1 good) -> Tier 2 ("Scale", 3 goods)
+  // should trigger it; Tier 2 -> Tier 3 ("Frames", also 3 goods) should NOT, since there's no evidence of a
+  // second cliff there and over-hinting risks feeling patronizing.
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    // deliver straight to the terminal via the data API — this test is about the hint text on the tier
+    // transition, not re-proving the delivery pipeline (already covered elsewhere in this suite).
+    await page.evaluate(async () => {
+      const G = window.__game;
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore');
+      const termId = G.place('terminal', 1, 9);
+      G.deliverToTerminal(termId, 'ferrite_plate', 999);
+      G.tickN(2);
+    });
+    await new Promise(r => setTimeout(r, 30));
+    const hint = await page.textContent('#hint');
+    const state = await page.evaluate(() => window.__game.state());
+    check('Tier 2 difficulty-cliff hint: Tier 1 actually completed (techTier advanced to 1)', state.techTier === 1, state);
+    check('Tier 2 difficulty-cliff hint: names the goods needed and the "separate chain" guidance on the Flow->Scale transition', /goods at once/.test(hint) && /castcrete|ferrite rod|braided cable/i.test(hint), hint);
+    check('Tier 2 difficulty-cliff hint: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+  {
+    // Tier 2 -> Tier 3 (Scale, 3 goods -> Frames, 3 goods): no goods-count jump, so no hint expected.
+    const { page, pageErrors } = await freshPage(browser);
+    await page.evaluate(async () => {
+      const G = window.__game;
+      const termId = G.place('terminal', 1, 9);
+      // complete Tier 1
+      G.deliverToTerminal(termId, 'ferrite_plate', 999);
+      G.tickN(2);
+      // complete Tier 2 ("Scale": castcrete, ferrite_rod, braided_cable)
+      for (const [g, q] of G.TIERS[1].need) G.deliverToTerminal(termId, g, q + 1);
+      G.tickN(2);
+    });
+    await new Promise(r => setTimeout(r, 30));
+    const hint = await page.textContent('#hint');
+    const state = await page.evaluate(() => window.__game.state());
+    check('Tier 2 difficulty-cliff hint: Tier 2 actually completed (techTier advanced to 2)', state.techTier === 2, state);
+    check('Tier 2 difficulty-cliff hint: does NOT repeat on Scale->Frames (no goods-count increase, no evidence of a cliff there)', !/goods at once/.test(hint), hint);
+    check('Tier 2 difficulty-cliff hint (no-repeat case): zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
   } finally {
     // always close the browser, even if a check above throws — an open browser process otherwise
     // keeps Node alive indefinitely instead of exiting, which looks like a hang rather than a failure.

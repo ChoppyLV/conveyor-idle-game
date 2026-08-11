@@ -215,7 +215,17 @@ function terminalAcceptGoods(){ return [...new Set([...currentTierNeed().map(x=>
 function advanceTier(){ const done=TIERS[techTier]; techTier++; tierProgress={};
   for(const id in nodes){ const b=nodes[id]; if(b.type==="terminal"){ const keep={}; for(const g of terminalAcceptGoods())keep[g]=b.inBuf[g]||0; b.inBuf=keep; } }
   buildPalette();
-  setHint(`✅ Tier ${techTier} complete — ${done.unlockLabel} unlocked!`,"ok"); }
+  let msg=`✅ Tier ${techTier} complete — ${done.unlockLabel} unlocked!`;
+  // Tier 2 difficulty-cliff hint (playtest round 1, fix list #6): all 3 testers struggled far more once they
+  // reached the tier after Tier 1, which is also the first tier requiring multiple simultaneous goods rather
+  // than one — likely a real jump in felt difficulty, not just "harder recipes." Rather than hardcode which
+  // tier index this is (fragile if TIERS gets rebalanced/reordered), fire whenever the tier just STARTED asks
+  // for strictly more simultaneous goods than the tier just COMPLETED did — that's the actual thing testers
+  // reacted to. This naturally fires once per playthrough (techTier only counts up within a save) with no
+  // extra localStorage bookkeeping, and re-fires on a fresh save the same way Tier 1's completion hint does.
+  const need=currentTierNeed();
+  if(need.length>done.need.length){ msg+=` <b>Next tier needs ${need.length} goods at once</b> (${need.map(([g])=>ITEMS[g].n).join(", ")}) — build a separate chain for each one, they don't have to finish together.`; }
+  setHint(msg,"ok"); }
 
 // ---------------------------------------------------------------- CONTRACTS + PRESTIGE (2026-07-21, fourth session)
 // Contracts are hand-authored side quotas for goods the player is already producing (per preproduction-plan.md

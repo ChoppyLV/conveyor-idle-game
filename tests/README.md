@@ -16,6 +16,15 @@ real `page.reload()`, not just an in-memory function call), and — since the 20
 wiring — the full curated MVP recipe tree (30 items / 25 recipes across Extractor, Smelting
 Furnace, Fabricator, Alloy Foundry, Assembly Station, and Manufactory), including real 2-input and
 4-input recipe scenarios and the recipe-picker UI at Fabricator's now much larger 10-option list.
+And, as of the playtest round 1 fixes (2026-08-11): the canvas `pointerdown` handler's
+`preventDefault()` (the Android ghost-click fix), the passive info-shield labels on buildings and
+deposits — verified by actually sampling canvas pixels at a small mobile viewport, not just
+checking that the label-drawing code runs, since the bug this exists to catch (a floored-size
+label wider than its cell, overflowing invisibly onto a background color identical to the label's
+own fill) only shows up in the rendered pixels — the first-run discoverability hint (fires once per
+placement, once per browser profile, persisted via `localStorage`), and the Tier 2
+difficulty-cliff hint (fires on the goods-count jump between tiers, not on tiers where the count
+doesn't increase).
 
 It talks to the game mostly through `window.__game`, the test API exposed at the bottom of
 `index.html`'s script — the same hook used to build and verify every feature in this file so far.
@@ -56,7 +65,7 @@ script that lived only in Claude's temporary cloud workspace and was never commi
 each new session either had to trust old chat history or rebuild verification from scratch. This
 file is the first attempt to break that pattern: a single, committed, cumulative regression suite
 that grows as features are added, so "does this still work" has one command to answer it instead
-of a session digging through prior conversations. It has already paid off three times: extending it for
+of a session digging through prior conversations. It has already paid off four times: extending it for
 the tech-tier gating feature surfaced a real bug in the offline-catch-up test itself (a
 too-early "before" measurement was masking genuine progress); rewriting it for the multi-good
 belt model surfaced an actual production bug in the new `distribute()`/`subtractFrom()` sim code
@@ -70,8 +79,15 @@ buildings are packed near each other (the BFS router runs out of free detour cel
 multi-input recipe's buffers with a flat equal amount per good can starve whichever input has the
 largest per-cycle requirement long before the others (Reinforced Frame's Bolts requirement is 24×
 its Braced Frame requirement) — both fixed by using explicit paths and ratio-proportional seeding,
-respectively. None of these would have been obvious without a single suite to run end to end and
-compare against.
+respectively; and writing a pixel-sampling test for the playtest round 1 info-shield fix caught a
+real follow-on bug the fix itself had introduced — flooring the on-grid label font at a legible
+minimum size made labels legible, but also made some of them (e.g. "Extractor") wider than their
+own cell at a real small mobile size, so they overflowed onto the canvas's background — which
+happens to be the *exact same color* as the label's own dark fill, making the overflow invisible.
+Every data-layer check and even the "zero page errors" checks stayed green the entire time this
+bug existed; only sampling actual rendered pixels caught it, which is why the info-shield tests in
+this suite read real canvas pixel data instead of just asserting the drawing functions ran. None of
+these would have been obvious without a single suite to run end to end and compare against.
 
 When you add a new building type, sim rule, or UI flow to `index.html`, add a section here for it
 before considering the feature done — same spirit as the Playwright verification that's already
