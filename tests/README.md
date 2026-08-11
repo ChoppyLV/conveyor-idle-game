@@ -11,8 +11,11 @@ Splitter placed directly onto an existing belt), tech-tier gating end-to-end (un
 extractor tiers by delivering to the Assembly Terminal), the Smart Splitter's multi-good routing
 (any mix of inputs, an always-required explicit good-or-"everything else" filter per output, and
 Pavel's own worked example of a merged ferrite/cuprite/chalkstone belt split back out by good),
-Contracts, Prestige, the Elevator Overpass, and save/load with offline-earnings catch-up (via a
-real `page.reload()`, not just an in-memory function call).
+Contracts, Prestige, the Elevator Overpass, save/load with offline-earnings catch-up (via a
+real `page.reload()`, not just an in-memory function call), and — since the 2026-07-22 recipe-tree
+wiring — the full curated MVP recipe tree (30 items / 25 recipes across Extractor, Smelting
+Furnace, Fabricator, Alloy Foundry, Assembly Station, and Manufactory), including real 2-input and
+4-input recipe scenarios and the recipe-picker UI at Fabricator's now much larger 10-option list.
 
 It talks to the game mostly through `window.__game`, the test API exposed at the bottom of
 `index.html`'s script — the same hook used to build and verify every feature in this file so far.
@@ -53,15 +56,22 @@ script that lived only in Claude's temporary cloud workspace and was never commi
 each new session either had to trust old chat history or rebuild verification from scratch. This
 file is the first attempt to break that pattern: a single, committed, cumulative regression suite
 that grows as features are added, so "does this still work" has one command to answer it instead
-of a session digging through prior conversations. It has already paid off twice: extending it for
+of a session digging through prior conversations. It has already paid off three times: extending it for
 the tech-tier gating feature surfaced a real bug in the offline-catch-up test itself (a
-too-early "before" measurement was masking genuine progress); and rewriting it for the multi-good
+too-early "before" measurement was masking genuine progress); rewriting it for the multi-good
 belt model surfaced an actual production bug in the new `distribute()`/`subtractFrom()` sim code
 — they deleted a good's key from a node's buffer once it drained near zero, which is harmless for
 a Splitter/Merger/Storage-Room/Smart-Splitter's dynamic per-good `buf`, but corrupted an
 extractor/smelter/fabricator's fixed-shape `outBuf`/`inBuf` (the next tick's `CAP - undefined`
-silently became `NaN` and poisoned that good's production forever). Neither would have been
-obvious without a single suite to run end to end and compare against.
+silently became `NaN` and poisoned that good's production forever); and writing new tests for the
+recipe-tree wiring surfaced two test-authoring traps rather than game bugs — an auto-routed
+(`connect()` with no explicit path) belt can legitimately fail to find a path once enough
+buildings are packed near each other (the BFS router runs out of free detour cells), and seeding a
+multi-input recipe's buffers with a flat equal amount per good can starve whichever input has the
+largest per-cycle requirement long before the others (Reinforced Frame's Bolts requirement is 24×
+its Braced Frame requirement) — both fixed by using explicit paths and ratio-proportional seeding,
+respectively. None of these would have been obvious without a single suite to run end to end and
+compare against.
 
 When you add a new building type, sim rule, or UI flow to `index.html`, add a section here for it
 before considering the feature done — same spirit as the Playwright verification that's already

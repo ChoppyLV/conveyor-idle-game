@@ -113,16 +113,38 @@ const CFG = Object.assign({
 }, window.__config||{});
 const CAP=CFG.storageCap, BELT_T1=CFG.beltCap.t1, BIGCAP=CFG.bigStorageCap;
 
-// ---------------------------------------------------------------- DATA (Act-1 subset; ratios from line_balance_game_data.json)
+// ---------------------------------------------------------------- DATA (full MVP subset, 2026-07-22 eighth
+// session — wired in from data/line_balance_game_data.json's 30 mvp:true items / 25 mvp&&!alternate recipes,
+// which is exactly preproduction-plan.md §2's curated 25-craftable-material dry MVP subset (5 raw ores ->
+// capstone Reinforced Frame, 6 producer buildings, 3 acts). Only the non-alternate MVP recipes are loaded —
+// the other ~100 alternate recipes stay excluded, gated (per preproduction-plan.md §3) behind a future
+// Salvage-Drive/R&D-Bench system that isn't built yet, same as before this session.
 const ITEMS={
   ferrite_ore:{n:"Ferrite Ore",c:"#8a5a44"}, cuprite_ore:{n:"Cuprite Ore",c:"#b5734a"},
-  chalkstone:{n:"Chalkstone",c:"#c9c4b0"},
+  chalkstone:{n:"Chalkstone",c:"#c9c4b0"}, cinder_coal:{n:"Cinder Coal",c:"#3a3a3f"},
+  auralite_ore:{n:"Auralite Ore",c:"#d4b83a"},
   ferrite_ingot:{n:"Ferrite Ingot",c:"#c0c6cf"}, cuprite_ingot:{n:"Cuprite Ingot",c:"#e0864a"},
+  auralite_ingot:{n:"Auralite Ingot",c:"#e8d05a"},
   ferrite_plate:{n:"Ferrite Plate",c:"#9aa4b2"}, ferrite_rod:{n:"Ferrite Rod",c:"#b8bec8"},
   bolts:{n:"Bolts",c:"#d0d6df"}, filament:{n:"Filament",c:"#e0a45c"},
   braided_cable:{n:"Braided Cable",c:"#c8a46a"}, castcrete:{n:"Castcrete",c:"#a8a89c"},
+  cuprite_sheet:{n:"Cuprite Sheet",c:"#e8975e"},
+  steel_billet:{n:"Steel Billet",c:"#6b7280"}, steel_girder:{n:"Steel Girder",c:"#565d68"},
+  steel_tube:{n:"Steel Tube",c:"#7c8794"}, braced_plate:{n:"Braced Plate",c:"#8892a0"},
+  turn_rotor:{n:"Turn Rotor",c:"#9aa0ac"}, field_stator:{n:"Field Stator",c:"#5c8fae"},
+  drive_motor:{n:"Drive Motor",c:"#4a7a99"}, encased_girder:{n:"Encased Girder",c:"#4d5560"},
+  rapidwire:{n:"Rapidwire",c:"#f0d878"}, logic_limiter:{n:"Logic Limiter",c:"#c9a83f"},
+  em_control_rod:{n:"EM Control Rod",c:"#b58f2e"}, braced_frame:{n:"Braced Frame",c:"#3f4650"},
+  smart_panel:{n:"Smart Panel",c:"#d4a83f"}, utility_frame:{n:"Utility Frame",c:"#333941"},
+  reinforced_frame:{n:"Reinforced Frame",c:"#22262c"},
 };
-// recipe: building, in[], out[], sec  (rates scaled by rateScale)
+// recipe: building, in[], out[], sec  (rates scaled by rateScale). The original 8 keys below keep their old
+// hand-authored ids (smelt_ferrite/fab_plate/etc, predating this session) rather than being renamed to match
+// line_balance_game_data.json's flat recipe ids (ferrite_ingot/ferrite_plate/etc) — every regression test and
+// every save ever written references these ids by name, and the ratios/buildings/rates are byte-identical to
+// the JSON's own ferrite_ingot/cuprite_ingot/ferrite_plate/ferrite_rod/bolts/filament/braided_cable/castcrete
+// entries either way, so renaming would only add risk for zero behavioral change. The 17 NEW recipes below use
+// the JSON's own ids directly since nothing existing depends on a different name for them.
 const RECIPES={
   smelt_ferrite:{name:"Ferrite Ingot",b:"smelter",in:[["ferrite_ore",1]],out:[["ferrite_ingot",1]],sec:2},
   smelt_cuprite:{name:"Cuprite Ingot",b:"smelter",in:[["cuprite_ore",1]],out:[["cuprite_ingot",1]],sec:2},
@@ -132,9 +154,32 @@ const RECIPES={
   fab_filament:{name:"Filament",b:"fabricator",in:[["cuprite_ingot",1]],out:[["filament",2]],sec:4},
   fab_cable:{name:"Braided Cable",b:"fabricator",in:[["filament",2]],out:[["braided_cable",1]],sec:2},
   fab_castcrete:{name:"Castcrete",b:"fabricator",in:[["chalkstone",3]],out:[["castcrete",1]],sec:4},
+  // --- new this session, from line_balance_game_data.json (mvp && !alternate), ids match the JSON exactly ---
+  auralite_ingot:{name:"Auralite Ingot",b:"smelter",in:[["auralite_ore",3]],out:[["auralite_ingot",1]],sec:4},
+  steel_billet:{name:"Steel Billet",b:"alloy_foundry",in:[["ferrite_ore",3],["cinder_coal",3]],out:[["steel_billet",3]],sec:4},
+  cuprite_sheet:{name:"Cuprite Sheet",b:"fabricator",in:[["cuprite_ingot",2]],out:[["cuprite_sheet",1]],sec:6},
+  rapidwire:{name:"Rapidwire",b:"fabricator",in:[["auralite_ingot",1]],out:[["rapidwire",5]],sec:5},
+  steel_girder:{name:"Steel Girder",b:"fabricator",in:[["steel_billet",4]],out:[["steel_girder",1]],sec:4},
+  steel_tube:{name:"Steel Tube",b:"fabricator",in:[["steel_billet",3]],out:[["steel_tube",2]],sec:6},
+  braced_plate:{name:"Braced Plate",b:"assembly_station",in:[["ferrite_plate",6],["bolts",12]],out:[["braced_plate",1]],sec:12},
+  turn_rotor:{name:"Turn Rotor",b:"assembly_station",in:[["ferrite_rod",5],["bolts",25]],out:[["turn_rotor",1]],sec:15},
+  braced_frame:{name:"Braced Frame",b:"assembly_station",in:[["braced_plate",3],["ferrite_rod",12]],out:[["braced_frame",2]],sec:60},
+  field_stator:{name:"Field Stator",b:"assembly_station",in:[["steel_tube",3],["filament",8]],out:[["field_stator",1]],sec:12},
+  drive_motor:{name:"Drive Motor",b:"assembly_station",in:[["turn_rotor",2],["field_stator",2]],out:[["drive_motor",1]],sec:12},
+  logic_limiter:{name:"Logic Limiter",b:"assembly_station",in:[["cuprite_sheet",5],["rapidwire",20]],out:[["logic_limiter",1]],sec:12},
+  encased_girder:{name:"Encased Girder",b:"assembly_station",in:[["steel_girder",3],["castcrete",6]],out:[["encased_girder",1]],sec:10},
+  em_control_rod:{name:"EM Control Rod",b:"assembly_station",in:[["field_stator",3],["logic_limiter",2]],out:[["em_control_rod",2]],sec:30},
+  smart_panel:{name:"Smart Panel",b:"assembly_station",in:[["braced_plate",1],["turn_rotor",1]],out:[["smart_panel",1]],sec:30},
+  utility_frame:{name:"Utility Frame",b:"assembly_station",in:[["braced_frame",1],["steel_girder",12]],out:[["utility_frame",2]],sec:24},
+  reinforced_frame:{name:"Reinforced Frame",b:"manufactory",in:[["braced_frame",5],["steel_tube",20],["encased_girder",5],["bolts",120]],out:[["reinforced_frame",1]],sec:30},
 };
 const rpm=(qty,sec)=>qty*60/sec*CFG.rateScale;                 // units/min in scaled world
-const POWER={extractor:100,smelter:140,fabricator:140};        // kW while working (design values)
+// PROC = every building type driven by a RECIPES entry (has a recipeId, inBuf/outBuf shaped by that recipe's
+// in/out). Was hardcoded as "smelter or fabricator" before this session; now a real Set so the three new
+// building types (Alloy Foundry, Assembly Station, Manufactory) plug into the exact same sim/UI code paths
+// with zero duplicated logic — see makeNode()/sim()/changeRecipe()/nodeName()/buildingInfoRows() below.
+const PROC=new Set(["smelter","fabricator","alloy_foundry","assembly_station","manufactory"]);
+const POWER={extractor:100,smelter:140,fabricator:140,alloy_foundry:160,assembly_station:180,manufactory:260}; // kW while working (design values; new three are placeholders in the same spirit as the original two)
 
 // Tech-tier turn-in schedule — placeholder, adapted from Satisfactory's real milestone tree (Tier 1
 // "Logistics" unlocks Splitter+Merger together; "Field Research" unlocks the Object Scanner, same tier;
@@ -152,10 +197,16 @@ const POWER={extractor:100,smelter:140,fabricator:140};        // kW while worki
 // and limestone deposits.
 const TIERS=[
   { name:"Flow",   need:[["ferrite_plate",30]],                                          unlocks:["splitter","merger"], unlockLabel:"Splitter, Merger" },
-  { name:"Scale",  need:[["castcrete",20],["ferrite_rod",20],["braided_cable",20]],       unlocks:["belt2","storageroom","extractor2"], unlockLabel:"Belt T2, Storage Room, Extractor T2" },
-  { name:"Frames", need:[["braided_cable",10],["bolts",10],["filament",10]],              unlocks:["extractor3"], unlockLabel:"Extractor T3" },
+  { name:"Scale",  need:[["castcrete",20],["ferrite_rod",20],["braided_cable",20]],       unlocks:["belt2","storageroom","extractor2","alloy_foundry","assembly_station"], unlockLabel:"Belt T2, Storage Room, Extractor T2, Alloy Foundry, Assembly Station" },
+  { name:"Frames", need:[["braided_cable",10],["bolts",10],["filament",10]],              unlocks:["extractor3","manufactory"], unlockLabel:"Extractor T3, Manufactory" },
 ];
-const TOOL_UNLOCK_TIER={splitter:1,merger:1,belt2:2,storageroom:2,smart_splitter:2,elevator:2}; // scan is NOT here — always unlocked, see note above
+// Alloy Foundry / Assembly Station land at Tier 2 ("Scale") and Manufactory at Tier 3 ("Frames") — this
+// deliberately mirrors preproduction-plan.md §2's Act 2 (Alloy Foundry/Assembly Station, alongside Splitter)
+// and Act 3 (Manufactory, alongside Merger/Belt T2/Storage Room/the Auralite branch) building unlocks, without
+// reshaping the already-built/tested 3-tier turn-in schedule itself (same goods/quantities as before this
+// session) — "Frames" was already this tier's name before Manufactory existed, and it's exactly where
+// Manufactory's own capstone recipe (Reinforced Frame, built from Braced Frame) belongs thematically.
+const TOOL_UNLOCK_TIER={splitter:1,merger:1,belt2:2,storageroom:2,smart_splitter:2,elevator:2,alloy_foundry:2,assembly_station:2,manufactory:3}; // scan is NOT here — always unlocked, see note above
 const EXTRACTOR_TIER_UNLOCK={1:0,2:2,3:3}; // extractor tier -> techTier required
 function tierUnlocked(tool){ const req=TOOL_UNLOCK_TIER[tool]; return req===undefined?true:techTier>=req; }
 const ELSE="__else__"; // Smart Splitter catch-all output filter — see MULTI-GOOD BELTS section below
@@ -221,6 +272,9 @@ const BUILD={
   extractor:{label:"Extractor",sub:"on deposit",color:"#d9a441"},
   smelter:{label:"Smelt. Furnace",sub:"1→1 ingot",color:"#e0864a"},
   fabricator:{label:"Fabricator",sub:"1 part",color:"#4fd1c5"},
+  alloy_foundry:{label:"Alloy Foundry",sub:"2→1 alloy",color:"#8a6a4a"},
+  assembly_station:{label:"Assembly Station",sub:"2-in part",color:"#5f8fc4"},
+  manufactory:{label:"Manufactory",sub:"deep combine",color:"#2f3540"},
   splitter:{label:"Splitter",sub:"1→3 proportional",color:"#8f7fe0"},
   merger:{label:"Merger",sub:"3→1 combine all",color:"#4fb3e0"},
   smart_splitter:{label:"Smart Splitter",sub:"filter goods 1↔3",color:"#e07a9e"},
@@ -239,8 +293,12 @@ function reset(){ // full wipe, incl. Credits/prestige — this is the "New Game
   wipeFactory();
 }
 function seedDeposits(){
+  // cinder_coal/auralite_ore deposits added 2026-07-22 (eighth session, recipe-tree wiring) — placed in far
+  // corners deliberately clear of every existing deposit/test-scenario cluster above, so no prior regression
+  // test's hardcoded coordinates collide with them.
   const seed=[[2,3,"ferrite_ore",1],[3,7,"ferrite_ore",2],[6,2,"cuprite_ore",1],
-              [11,8,"ferrite_ore",2],[13,4,"cuprite_ore",1],[8,9,"chalkstone",1]];
+              [11,8,"ferrite_ore",2],[13,4,"cuprite_ore",1],[8,9,"chalkstone",1],
+              [15,0,"cinder_coal",2],[0,10,"auralite_ore",1]];
   seed.forEach(([x,y,g,r],i)=>{ const d={x,y,good:g,rich:r,discovered:i===0}; deposits.push(d); cell[y][x]={t:"dep",d}; }); // only the first deposit starts known — the rest need Scanning
 }
 function revealDeposit(d){ d.discovered=true; }
@@ -253,7 +311,7 @@ function makeNode(type,x,y,recipeId,tier){
     inBuf:{},outBuf:{},util:0,working:false,stalled:false};
   if(type==="extractor"){ const d=cell[y][x].d; b.good=d.good; b.tier=tier||1;
     b.rate=CFG.richness[d.rich-1]*CFG.extractorMult[b.tier-1]*prestigeMult(); b.outBuf[d.good]=0; }
-  if(type==="smelter"||type==="fabricator"){ const r=RECIPES[recipeId];
+  if(PROC.has(type)){ const r=RECIPES[recipeId];
     r.in.forEach(([g])=>b.inBuf[g]=0); r.out.forEach(([g])=>b.outBuf[g]=0); }
   if(MIXNODE.has(type)){ b.buf={}; } // per-good buckets — every mix node (Splitter/Merger/Storage Room/Smart Splitter)
     // carries an arbitrary blend of goods now (mechanics-spec.md §1.3 rewrite, 2026-07-22): belts themselves are
@@ -353,7 +411,7 @@ function sim(dt){
       const p=powerScale(POWER.extractor,dt,demand);
       const got=add*p.f; b.outBuf[b.good]+=got; b.working=got>1e-9; b.util=cap>0?(got/(cap*dt/60)):0;
       b.stalled=room<=1e-6; demand=p.d;
-    } else if(b.type==="smelter"||b.type==="fabricator"){
+    } else if(PROC.has(b.type)){
       const r=RECIPES[b.recipeId]; const potCycles=(60/r.sec)*CFG.rateScale*dt/60; // cycles this tick at 100%
       let lim=potCycles;
       r.in.forEach(([g,q])=>lim=Math.min(lim,(b.inBuf[g]||0)/q));
@@ -560,7 +618,7 @@ function deleteBuilding(nodeId){
 // ---------------------------------------------------------------- RECIPE CHANGE (in place, no rebuild)
 function changeRecipe(nodeId,recipeId){
   const b=nodes[nodeId]; if(!b)return{err:"missing"};
-  if(b.type!=="smelter"&&b.type!=="fabricator")return{err:"This building has no recipe to change"};
+  if(!PROC.has(b.type))return{err:"This building has no recipe to change"};
   if(inBeltCount(b)>0||outBeltCount(b)>0)return{err:"Disconnect its belts first (Delete tool), then change the recipe"};
   const r=RECIPES[recipeId]; if(!r||r.b!==b.type)return{err:"Not a valid recipe for this building"};
   b.recipeId=recipeId; b.inBuf={}; b.outBuf={}; b.util=0; b.working=false; b.stalled=false;
@@ -575,6 +633,21 @@ function resize(){ const w=c.clientWidth, h=c.clientHeight; c.width=w; c.height=
   CS=Math.min(Math.floor(w/GW), Math.floor(h/GH)); OX=(w-CS*GW)/2; OY=(h-CS*GH)/2; }
 function gx(px){ return Math.floor((px-OX)/CS); } function gy(py){ return Math.floor((py-OY)/CS); }
 function cx(x){ return OX+x*CS+CS/2; } function cy(y){ return OY+y*CS+CS/2; }
+// Passive info shields (playtest round 1, fix #2): at a real mobile cell size (CS often ~24-30px on a phone
+// screen, well below the CS=40 desktop default this was originally tuned against), a pure CS-proportional font
+// shrinks to 4-5px and is functionally unreadable — this is very likely the root cause behind the #1 unanimous
+// playtest complaint ("can't tell what's on the grid"), since building labels already existed in code but were
+// too small to read, and deposits had no text label at all (just an unlabeled color-coded circle). fLabel()
+// floors every on-grid label at a legible minimum regardless of how small the cell size gets.
+function fLabel(scale,weight){ return `${weight||""} ${Math.max(9,Math.round(CS*scale))}px sans-serif`.trim(); }
+// Verified via screenshot at a 420x800 mobile viewport (real small CS): flooring the font size fixed the
+// "too small to read" problem but created a new one — a floored-size label like "Extractor" is often wider
+// than the building's own cell, so it overflows onto the black canvas background. The label fill color
+// (#0d1015, near-black) is chosen for contrast against the light/mid-tone building box, which makes the
+// overflowing portion effectively invisible against black. A light outline keeps the same dark fill legible
+// on the box while also making the overflow readable on black — same "outline + fill" trick already used for
+// deposit ore-name labels.
+function lblText(s,tx,ty){ ctx.lineWidth=Math.max(1.5,CS*0.05); ctx.strokeStyle="rgba(232,236,241,.85)"; ctx.strokeText(s,tx,ty); ctx.fillText(s,tx,ty); }
 function draw(){
   ctx.clearRect(0,0,c.width,c.height);
   // grid
@@ -584,8 +657,14 @@ function draw(){
   // deposits — fully invisible until Scanned (discovered)
   for(const d of deposits){ if(!d.discovered)continue; if(cell[d.y][d.x].t==="dep"){ ctx.globalAlpha=.5; ctx.fillStyle=ITEMS[d.good].c;
       ctx.beginPath(); ctx.arc(cx(d.x),cy(d.y),CS*0.32,0,6.29); ctx.fill(); ctx.globalAlpha=1;
-      ctx.fillStyle="#0d1015"; ctx.font=`bold ${CS*0.2}px sans-serif`; ctx.textAlign="center";
-      ctx.fillText("◆".repeat(d.rich),cx(d.x),cy(d.y)+CS*0.07); } }
+      ctx.fillStyle="#0d1015"; ctx.font=fLabel(0.2,"bold"); ctx.textAlign="center";
+      ctx.fillText("◆".repeat(d.rich),cx(d.x),cy(d.y)+CS*0.07);
+      // passive info shield: the ore name itself, not just its color — a color-coded circle alone tells you
+      // nothing unless you already have every good's color memorized, which is exactly what testers reported
+      ctx.fillStyle="#e8ecf1"; ctx.font=fLabel(0.17,"bold"); ctx.textAlign="center";
+      ctx.strokeStyle="#0d1015"; ctx.lineWidth=Math.max(2,CS*0.05);
+      const depName=ITEMS[d.good].n.split(" ")[0];
+      ctx.strokeText(depName,cx(d.x),cy(d.y)-CS*0.36); ctx.fillText(depName,cx(d.x),cy(d.y)-CS*0.36); } }
   // scan-select rectangle preview (drag in progress)
   if(mode==="scan"&&scanning&&scanStart){ const x1=Math.min(scanStart[0],scanEnd[0]), x2=Math.max(scanStart[0],scanEnd[0]);
     const y1=Math.min(scanStart[1],scanEnd[1]), y2=Math.max(scanStart[1],scanEnd[1]);
@@ -640,27 +719,27 @@ function lerpPath(pts,t){ // t 0..1 across whole polyline
 function drawBld(b){ const x=OX+b.x*CS, y=OY+b.y*CS, meta=BUILD[b.type];
   ctx.fillStyle=b.stalled?"#3a2422":meta.color; ctx.fillRect(x+2,y+2,CS-4,CS-4);
   ctx.strokeStyle=b.stalled?"#e0554f":"rgba(255,255,255,.15)"; ctx.lineWidth=b.stalled?2:1; ctx.strokeRect(x+2.5,y+2.5,CS-5,CS-5);
-  ctx.fillStyle="#0d1015"; ctx.textAlign="center"; ctx.font=`bold ${CS*0.18}px sans-serif`;
-  let label=meta.label.split(" ")[0]; if(b.type==="smelter")label="Smelt"; if(b.type==="fabricator")label=RECIPES[b.recipeId].name.split(" ")[0];
-  ctx.fillText(label,x+CS/2,y+CS*0.42);
-  ctx.font=`${CS*0.15}px sans-serif`;
-  if(b.type==="extractor")ctx.fillText("T"+b.tier+" "+Math.round(b.rate)+"/m",x+CS/2,y+CS*0.62);
-  else if(b.recipeId)ctx.fillText(Math.round(b.util*100)+"%",x+CS/2,y+CS*0.62);
+  ctx.fillStyle="#0d1015"; ctx.textAlign="center"; ctx.font=fLabel(0.18,"bold");
+  let label=meta.label.split(" ")[0]; if(b.type==="smelter")label="Smelt"; if(b.recipeId&&b.type!=="smelter")label=RECIPES[b.recipeId].name.split(" ")[0];
+  lblText(label,x+CS/2,y+CS*0.42);
+  ctx.font=fLabel(0.15);
+  if(b.type==="extractor")lblText("T"+b.tier+" "+Math.round(b.rate)+"/m",x+CS/2,y+CS*0.62);
+  else if(b.recipeId)lblText(Math.round(b.util*100)+"%",x+CS/2,y+CS*0.62);
   else if(b.type==="terminal"){ const need=currentTierNeed(); const met=need.filter(([g,q])=>(tierProgress[g]||0)>=q).length;
-    ctx.fillText(techTier>=TIERS.length?"MAX":met+"/"+need.length+" goods",x+CS/2,y+CS*0.62); }
-  else if(b.type==="splitter")ctx.fillText("1→3 "+Math.round(bufTotal(b)),x+CS/2,y+CS*0.62);
-  else if(b.type==="merger")ctx.fillText(inBeltCount(b)+"→1 "+Math.round(bufTotal(b)),x+CS/2,y+CS*0.62);
-  else if(b.type==="smart_splitter")ctx.fillText(inBeltCount(b)+"→"+outBeltCount(b),x+CS/2,y+CS*0.62);
-  else if(b.type==="storageroom")ctx.fillText(Math.round(bufTotal(b))+"/"+BIGCAP,x+CS/2,y+CS*0.62);
+    lblText(techTier>=TIERS.length?"MAX":met+"/"+need.length+" goods",x+CS/2,y+CS*0.62); }
+  else if(b.type==="splitter")lblText("1→3 "+Math.round(bufTotal(b)),x+CS/2,y+CS*0.62);
+  else if(b.type==="merger")lblText(inBeltCount(b)+"→1 "+Math.round(bufTotal(b)),x+CS/2,y+CS*0.62);
+  else if(b.type==="smart_splitter")lblText(inBeltCount(b)+"→"+outBeltCount(b),x+CS/2,y+CS*0.62);
+  else if(b.type==="storageroom")lblText(Math.round(bufTotal(b))+"/"+BIGCAP,x+CS/2,y+CS*0.62);
   // buffer gauges
   if(b.type!=="splitter"&&b.type!=="terminal"&&b.type!=="merger"&&b.type!=="storageroom"&&b.type!=="smart_splitter"){ const outs=Object.keys(b.outBuf); if(outs.length){ const g=outs[0];
     gauge(x+CS-6,y+4,4,CS-8,(b.outBuf[g]||0)/CAP,ITEMS[g].c); }
     const ins=Object.keys(b.inBuf); if(ins.length){ gauge(x+2,y+4,4,CS-8,(b.inBuf[ins[0]]||0)/CAP,"#d9a441"); } }
-  if(b.stalled){ctx.fillStyle="#e0554f";ctx.font=`bold ${CS*0.13}px sans-serif`;ctx.fillText("STALL",x+CS/2,y+CS*0.8);}
+  if(b.stalled){ctx.fillStyle="#e0554f";ctx.font=fLabel(0.13,"bold");lblText("STALL",x+CS/2,y+CS*0.8);}
 }
 function drawGen(b){ const x=OX+b.x*CS,y=OY+b.y*CS; ctx.fillStyle=brownout?"#3a2422":"#c8b04a"; ctx.fillRect(x+2,y+2,CS-4,CS-4);
-  ctx.fillStyle="#0d1015";ctx.textAlign="center";ctx.font=`bold ${CS*0.3}px sans-serif`;ctx.fillText("⚡",x+CS/2,y+CS*0.55);
-  ctx.font=`${CS*0.14}px sans-serif`;ctx.fillText("tap",x+CS/2,y+CS*0.78); }
+  ctx.fillStyle="#0d1015";ctx.textAlign="center";ctx.font=fLabel(0.3,"bold");ctx.fillText("⚡",x+CS/2,y+CS*0.55);
+  ctx.font=fLabel(0.14);lblText("tap",x+CS/2,y+CS*0.78); }
 function gauge(x,y,w,h,f,col){ f=Math.max(0,Math.min(1,f)); ctx.fillStyle="rgba(0,0,0,.35)";ctx.fillRect(x,y,w,h);
   ctx.fillStyle=col;ctx.fillRect(x,y+h*(1-f),w,h*f); }
 
@@ -678,7 +757,7 @@ function updateAnalyze(){ const el=document.getElementById("analyzeBody"); if(!d
     else if(b.type==="storageroom"){ rate=Math.round(bufTotal(b))+"/"+BIGCAP; sub=bufSummary(b); }
     else{ const r=RECIPES[b.recipeId]; const og=r.out[0]; rate=Math.round(b.util*rpm(og[1],r.sec))+"/m "+Math.round(b.util*100)+"%";
       sub="in "+Math.round(b.inBuf[r.in[0][0]])+" · out "+Math.round(b.outBuf[og[0]]); }
-    const nm=b.type==="fabricator"?RECIPES[b.recipeId].name:BUILD[b.type].label;
+    const nm=(b.recipeId&&b.type!=="smelter")?RECIPES[b.recipeId].name:BUILD[b.type].label;
     h+=`<div class="b">${nm} ${b.stalled?'<span style="color:#e0554f">STALL</span>':''}</div><div class="r"><span class="k">${rate}</span><span class="sub">${sub}</span></div>`;
   }
   h+=`<div class="b" style="margin-top:6px">Power</div><div class="r"><span class="k">${Math.round(battery)}/${CFG.batteryCap} kW</span><span class="sub">${brownout?'BROWNOUT':'ok'}</span></div>`;
@@ -690,8 +769,20 @@ let mode=null, placeType=null, beltSrc=null, beltPath=[], beltPathCross=[], pend
 let scanning=false, scanStart=null, scanEnd=null;
 const hint=document.getElementById("hint");
 function setHint(t,cls){ hint.innerHTML=t; hint.className=cls||""; }
+// First-run discoverability hint (playtest round 1, fix #3): the tap-for-building-info panel and the
+// tap-for-tier-progress panel both already existed (fourth session) but none of the 3 testers ever found
+// either one — nothing in the UI ever told them the interaction exists. Rather than a separate tutorial
+// overlay (more surface area, more to maintain), this piggybacks on the very first successful building
+// placement's own hint message, which is a moment every player reaches early and reads. Fires once, ever,
+// persisted so returning players don't see it again.
+let hintSeen=false; try{ hintSeen=localStorage.getItem("lineBalance_hintSeen_v1")==="1"; }catch(e){}
+function placedHint(baseMsg){
+  if(hintSeen)return baseMsg;
+  hintSeen=true; try{ localStorage.setItem("lineBalance_hintSeen_v1","1"); }catch(e){}
+  return baseMsg+" <b>Tip:</b> tap any building (with no tool selected) to see what it's making — tap the Tier label up top to see what's needed next.";
+}
 function buildPalette(){ const P=document.getElementById("palette"); P.innerHTML="";
-  const items=[["extractor",true],["smelter",true],["fabricator",true],["terminal",true],["splitter",tierUnlocked("splitter")],["merger",tierUnlocked("merger")],["smart_splitter",tierUnlocked("smart_splitter")],["storageroom",tierUnlocked("storageroom")],["generator",true],["belt1",true],["belt2",tierUnlocked("belt2")],["scan",true],["analyze",true],["contracts",true],["delete",true]];
+  const items=[["extractor",true],["smelter",true],["fabricator",true],["terminal",true],["alloy_foundry",tierUnlocked("alloy_foundry")],["assembly_station",tierUnlocked("assembly_station")],["manufactory",tierUnlocked("manufactory")],["splitter",tierUnlocked("splitter")],["merger",tierUnlocked("merger")],["smart_splitter",tierUnlocked("smart_splitter")],["storageroom",tierUnlocked("storageroom")],["generator",true],["belt1",true],["belt2",tierUnlocked("belt2")],["scan",true],["analyze",true],["contracts",true],["delete",true]];
   for(const[t,en]of items){ const btn=document.createElement("button"); btn.className="tool"; btn.dataset.t=t;
     if(t==="belt1")btn.innerHTML="Belt T1<small>"+CFG.beltCap.t1+"/m</small>"; else if(t==="belt2")btn.innerHTML="Belt T2<small>"+CFG.beltCap.t2+"/m</small>"; else if(t==="scan")btn.innerHTML="Scan<small>reveal area</small>"; else if(t==="analyze")btn.innerHTML="Analyze<small>rates</small>"; else if(t==="delete")btn.innerHTML="Delete<small>remove tap</small>"; else if(t==="contracts")btn.innerHTML="Contracts<small>quotas</small>";
     else btn.innerHTML=BUILD[t].label.replace(" ","<br>")+`<small>${BUILD[t].sub}</small>`;
@@ -707,15 +798,23 @@ function selectTool(t,btn){ document.querySelectorAll(".tool").forEach(b=>b.clas
   else if(t==="delete"){ mode="delete"; setHint("Delete: tap a building or a belt cell to remove it. This also clears anything wired directly to it."); }
   else if(t==="splitter"||t==="merger"||t==="smart_splitter"){ mode="place"; placeType=t; setHint(`Tap an empty cell, or tap an existing belt to splice the ${BUILD[t].label} into it.`); }
   else { mode="place"; placeType=t; setHint(`Tap a ${t==="extractor"?"faint ore deposit":"grid cell"} to place the ${BUILD[t].label}.`); } }
-c.addEventListener("pointerdown",e=>{ const r=c.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top;
+c.addEventListener("pointerdown",e=>{ e.preventDefault();
+  // Android bug fix (playtest round 1, tester 3): without this, some Android/Chrome builds still fire a
+  // synthetic compatibility "click" for the same touch right after this handler runs. If that handler opened
+  // a centered modal (e.g. the Fabricator recipe picker), the ghost click can land on whichever "opt" button
+  // happens to sit at the original tap's screen coordinates, silently choosing it and closing the modal —
+  // looks to the player like "the menu flashed and disappeared." preventDefault() on pointerdown suppresses
+  // the compatibility click for the touch that triggered it; the modal buttons' own onclick handlers still
+  // fire normally for the player's real, separate tap on them.
+  const r=c.getBoundingClientRect(); const px=e.clientX-r.left, py=e.clientY-r.top;
   const x=gx(px), y=gy(py); if(x<0||x>=GW||y<0||y>=GH)return;
   const cc=cell[y][x];
   if(mode==="place"){
     if(placeType==="generator"&&cc&&cc.t==="bld"&&nodes[cc.id].type==="generator"){ pulseGen(nodes[cc.id]); return; }
     if(!canPlace(placeType,x,y)){ setHint(placeType==="extractor"?"Extractors go on ore deposits (the faint ◆ circles).":"That cell is occupied.","warn"); return; }
-    if(placeType==="smelter"||placeType==="fabricator"){ askRecipe(placeType,x,y); return; }
+    if(PROC.has(placeType)){ askRecipe(placeType,x,y); return; }
     if(placeType==="extractor"){ askExtractorTier(x,y); return; }
-    const b=place(placeType,x,y); if(b)setHint(`${BUILD[placeType].label} placed.`,"ok");
+    const b=place(placeType,x,y); if(b)setHint(placedHint(`${BUILD[placeType].label} placed.`),"ok");
   } else if(mode==="belt"){
     // Manual belt drawing: tap a source building, then tap adjacent empty cells one at a time to extend
     // the belt, then tap an adjacent destination to finish. Tap the last-placed cell again to undo it;
@@ -778,7 +877,7 @@ function finishScan(){ if(!scanning||!scanStart)return;
   scanning=false; scanStart=null; scanEnd=null; }
 c.addEventListener("pointerup",finishScan);
 c.addEventListener("pointerleave",()=>{ if(mode==="scan"&&scanning)finishScan(); });
-function nodeName(b){ return b.type==="fabricator"?RECIPES[b.recipeId].name:BUILD[b.type].label; }
+function nodeName(b){ return (b.recipeId&&b.type!=="smelter")?RECIPES[b.recipeId].name:BUILD[b.type].label; }
 function pulseGen(b){ battery=Math.min(CFG.batteryCap,battery+CFG.genPerClick); setHint("⚡ +"+CFG.genPerClick+" kW","ok"); }
 function askRecipe(type,x,y){ const list=Object.entries(RECIPES).filter(([id,r])=>r.b===type);
   const box=document.getElementById("recipePick"), opts=document.getElementById("rpOpts");
@@ -786,7 +885,7 @@ function askRecipe(type,x,y){ const list=Object.entries(RECIPES).filter(([id,r])
   opts.innerHTML=""; for(const[id,r]of list){ const btn=document.createElement("button"); btn.className="opt";
     const ins=r.in.map(([g,q])=>q+"× "+ITEMS[g].n).join(", "), outs=r.out.map(([g,q])=>q+"× "+ITEMS[g].n).join(", ");
     btn.innerHTML=`<b>${r.name}</b><div class="rt">${ins} → ${outs} · ${r.sec}s → ${Math.round(rpm(r.out[0][1],r.sec))}/m</div>`;
-    btn.onclick=()=>{ box.classList.remove("show"); const b=place(type,x,y,id); if(b)setHint(`${r.name} ${BUILD[type].label} placed.`,"ok"); }; opts.appendChild(btn); }
+    btn.onclick=()=>{ box.classList.remove("show"); const b=place(type,x,y,id); if(b)setHint(placedHint(`${r.name} ${BUILD[type].label} placed.`),"ok"); }; opts.appendChild(btn); }
   box.classList.add("show"); }
 function askExtractorTier(x,y){ const d=cell[y][x].d;
   const box=document.getElementById("recipePick"), opts=document.getElementById("rpOpts");
@@ -795,7 +894,7 @@ function askExtractorTier(x,y){ const d=cell[y][x].d;
     if(techTier<EXTRACTOR_TIER_UNLOCK[tier])return; // not unlocked yet — omit rather than show disabled (small mobile modal)
     const btn=document.createElement("button"); btn.className="opt";
     btn.innerHTML=`<b>T${tier} (×${mult})</b><div class="rt">${ITEMS[d.good].n} → ${rate}/m</div>`;
-    btn.onclick=()=>{ box.classList.remove("show"); const b=place("extractor",x,y,null,tier); if(b)setHint(`T${tier} Extractor placed.`,"ok"); };
+    btn.onclick=()=>{ box.classList.remove("show"); const b=place("extractor",x,y,null,tier); if(b)setHint(placedHint(`T${tier} Extractor placed.`),"ok"); };
     opts.appendChild(btn); });
   box.classList.add("show"); }
 function askRecipeChange(nodeId){ const b=nodes[nodeId]; if(!b)return;
@@ -827,7 +926,7 @@ function buildingInfoRows(b){ const rows=[];
     rows.push(["Tier","T"+b.tier]); rows.push(["Rate",Math.round(b.rate)+"/m"]);
     rows.push(["Output",ITEMS[b.good].n]); rows.push(["Buffer",Math.round(b.outBuf[b.good]||0)+"/"+CAP]);
     rows.push(["Status",b.stalled?"STALLED (belt/output full)":(b.working?"working":"idle")]);
-  } else if(b.type==="smelter"||b.type==="fabricator"){
+  } else if(PROC.has(b.type)){
     const r=RECIPES[b.recipeId];
     rows.push(["Recipe",r.name]);
     rows.push(["Inputs",r.in.map(([g,q])=>`${q}× ${ITEMS[g].n} (have ${Math.round(b.inBuf[g]||0)})`).join(", ")]);
@@ -863,7 +962,7 @@ function showBuildingInfo(nodeId){ const b=nodes[nodeId]; if(!b)return;
   const body=document.getElementById("infoBody");
   body.innerHTML=buildingInfoRows(b).map(([k,v])=>`<div class="infoRow"><span class="k">${k}</span><span>${v}</span></div>`).join("");
   const actions=document.getElementById("infoActions"); actions.innerHTML="";
-  if(b.type==="smelter"||b.type==="fabricator"){
+  if(PROC.has(b.type)){
     const canChange=inBeltCount(b)===0&&outBeltCount(b)===0;
     if(!canChange){ const note=document.createElement("div"); note.className="warnNote";
       note.textContent="Disconnect its belts first (Delete tool) to change the recipe without losing product."; actions.appendChild(note); }

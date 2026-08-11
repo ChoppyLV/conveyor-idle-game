@@ -1244,6 +1244,205 @@ async function main() {
     await page.close();
   }
 
+  // ---------------------------------------------------------------- recipe tree wiring (2026-07-22, eighth
+  // session) — index.html's RECIPES/ITEMS were, until this session, a small 8-recipe/11-item hand-authored
+  // subset. This wires in the real MVP slice of data/line_balance_game_data.json (preproduction-plan.md §2's
+  // confirmed 25-craftable-material dry MVP: 5 raw ores -> capstone Reinforced Frame), adding 17 more standard
+  // (non-alternate) recipes and 3 new producer buildings (Alloy Foundry, Assembly Station, Manufactory) that
+  // plug into the exact same PROC-driven sim/UI code paths smelter/fabricator already used — the ~100 alternate
+  // recipes stay excluded on purpose (preproduction-plan.md §3's Salvage-Drive/R&D-Bench gate for those isn't
+  // built yet, unchanged from before this session).
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      return {
+        recipeCount: Object.keys(G.RECIPES).length,
+        itemCount: Object.keys(G.ITEMS).length,
+        hasNewBuildings: ['alloy_foundry', 'assembly_station', 'manufactory'].every(t => document.querySelector(`.tool[data-t="${t}"]`) != null),
+        newBuildingsDisabledAtBoot: ['alloy_foundry', 'assembly_station', 'manufactory'].every(t => document.querySelector(`.tool[data-t="${t}"]`).disabled),
+        depsPresent: ['cinder_coal', 'auralite_ore'].every(g => G.deposits().some(d => d.good === g)),
+      };
+    });
+    check('recipe tree: RECIPES now has all 25 MVP standard recipes (8 original + 17 wired in this session)', out.recipeCount === 25, out);
+    check('recipe tree: ITEMS now has all 30 MVP items (11 original + 19 new: 2 raw + 17 processed)', out.itemCount === 30, out);
+    check('recipe tree: Alloy Foundry/Assembly Station/Manufactory all have real palette buttons', out.hasNewBuildings, out);
+    check('recipe tree: those three buttons are disabled at Tier 0 (gated, not free-for-all)', out.newBuildingsDisabledAtBoot, out);
+    check('recipe tree: the two new raw deposits (Cinder Coal, Auralite Ore) exist on the map', out.depsPresent, out);
+    check('recipe tree: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- recipe tree: tier-gating for the 3 new buildings
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      // Tier 1: 30 Ferrite Plate, reachable from the starter deposit alone (unchanged by this session).
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore' && d.rich === 2);
+      const exId = G.place('extractor', dep.x, dep.y, null, 1);
+      const smId = G.place('smelter', dep.x + 1, dep.y, 'smelt_ferrite');
+      const fabId = G.place('fabricator', dep.x + 2, dep.y, 'fab_plate');
+      const termId = G.place('terminal', dep.x + 3, dep.y);
+      G.connect(exId, smId); G.connect(smId, fabId); G.connect(fabId, termId);
+      G.tickN(30);
+      const afterTier1 = G.state().techTier;
+      const alloyEnabledAtTier1 = !document.querySelector('.tool[data-t="alloy_foundry"]').disabled;
+      const asmEnabledAtTier1 = !document.querySelector('.tool[data-t="assembly_station"]').disabled;
+      const manuEnabledAtTier1 = !document.querySelector('.tool[data-t="manufactory"]').disabled;
+      return { afterTier1, alloyEnabledAtTier1, asmEnabledAtTier1, manuEnabledAtTier1 };
+    });
+    check('recipe tree: reached Tier 1', out.afterTier1 >= 1, out);
+    check('recipe tree: Alloy Foundry and Assembly Station unlock at Tier 2, not Tier 1 (mirrors preproduction-plan.md Act 2)', !out.alloyEnabledAtTier1 && !out.asmEnabledAtTier1, out);
+    check('recipe tree: Manufactory stays locked at Tier 1 too (it unlocks at Tier 3, mirrors Act 3)', !out.manuEnabledAtTier1, out);
+    check('recipe tree tier-gating: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- recipe tree: Alloy Foundry, a real 2-input recipe
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const depF = G.deposits().find(d => d.good === 'ferrite_ore' && d.x === 2 && d.y === 3);
+      const depC = G.deposits().find(d => d.good === 'cinder_coal');
+      const exF = G.place('extractor', depF.x, depF.y, null, 3), exC = G.place('extractor', depC.x, depC.y, null, 3);
+      const afId = G.place('alloy_foundry', 8, 5, 'steel_billet');
+      const storeId = G.place('storageroom', 9, 5); // output sink — without one outBuf hits CAP and the machine
+      // legitimately stalls (working:false) almost immediately, which would make this test about output
+      // backpressure instead of about the 2-input consumption it's meant to check.
+      const c1 = G.connect(exF, afId), c2 = G.connect(exC, afId), c3 = G.connect(afId, storeId);
+      G.tickN(30);
+      const n = G.node(afId);
+      return { c1Err: c1.err || null, c2Err: c2.err || null, c3Err: c3.err || null,
+        ferriteConsumed: (n.inBuf.ferrite_ore || 0) < 200, coalConsumed: (n.inBuf.cinder_coal || 0) < 200,
+        steelProduced: (G.node(storeId).buf.steel_billet || 0) > 0, working: n.working };
+    });
+    check('alloy foundry: both a ferrite ore and a cinder coal extractor connect to it (2 real inputs, not the old 1-input assumption)', out.c1Err === null && out.c2Err === null && out.c3Err === null, out);
+    check('alloy foundry: BOTH inputs are actually being drawn down (steel_billet needs ferrite_ore AND cinder_coal every cycle)', out.ferriteConsumed && out.coalConsumed, out);
+    check('alloy foundry: steel_billet is actually produced and flowing downstream', out.steelProduced && out.working, out);
+    check('alloy foundry: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- recipe tree: Assembly Station, a real 2-input
+  // recipe fed by a full production chain (not just directly-seeded buffers) — braced_plate needs Ferrite Plate
+  // (from the base ferrite chain) AND Bolts (from the ferrite-rod sub-chain), converging at one machine.
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      // Explicit paths throughout (rather than auto-route/BFS) — with this many buildings packed near each
+      // other, the auto-router can legitimately run out of free detour cells; explicit paths make the layout
+      // deterministic instead of depending on incidental free space, matching how the Merger/Smart-Splitter
+      // tests elsewhere in this file already do it.
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore' && d.x === 3 && d.y === 7);
+      const exId = G.place('extractor', dep.x, dep.y, null, 3);            // (3,7)
+      const spId = G.place('splitter', dep.x + 2, dep.y);                  // (5,7)
+      const sm1 = G.place('smelter', dep.x + 3, dep.y - 1, 'smelt_ferrite');// (6,6)
+      const sm2 = G.place('smelter', dep.x + 3, dep.y + 1, 'smelt_ferrite');// (6,8)
+      const fabPlate = G.place('fabricator', dep.x + 4, dep.y - 1, 'fab_plate'); // (7,6)
+      const fabRod = G.place('fabricator', dep.x + 4, dep.y + 1, 'fab_rod');     // (7,8)
+      const fabBolts = G.place('fabricator', dep.x + 5, dep.y + 1, 'fab_bolts'); // (8,8)
+      const merger = G.place('merger', dep.x + 5, dep.y);                  // (8,7)
+      const asId = G.place('assembly_station', dep.x + 6, dep.y, 'braced_plate'); // (9,7)
+      const errs = [
+        G.connect(exId, spId, 1, [[dep.x + 1, dep.y]]),                       // ex(3,7) -> sp(5,7) via (4,7)
+        G.connect(spId, sm1, 1, [[dep.x + 3, dep.y]]),                        // sp(5,7) -> sm1(6,6) via (6,7)
+        G.connect(spId, sm2, 1, [[dep.x + 2, dep.y + 1]]),                    // sp(5,7) -> sm2(6,8) via (5,8)
+        G.connect(sm1, fabPlate, 1, []),                                     // sm1(6,6) -> fabPlate(7,6), direct
+        G.connect(sm2, fabRod, 1, []),                                       // sm2(6,8) -> fabRod(7,8), direct
+      ].map(r => r.err).filter(Boolean);
+      // fabPlate's ferrite_plate needs to reach the assembly station directly; fabRod's ferrite_rod goes to
+      // fabBolts first, then bolts merge in. Route ferrite_plate into the same merger, so both of braced_plate's
+      // inputs (ferrite_plate + bolts) land on the assembly station via one shared belt.
+      const r1 = G.connect(fabRod, fabBolts, 1, []); if (r1.err) errs.push(r1.err);           // (7,8)->(8,8) direct
+      const r2 = G.connect(fabPlate, merger, 1, [[dep.x + 5, dep.y - 1]]); if (r2.err) errs.push(r2.err); // (7,6)->(8,7) via (8,6)
+      const r3 = G.connect(fabBolts, merger, 1, []); if (r3.err) errs.push(r3.err);           // (8,8)->(8,7) direct
+      const r4 = G.connect(merger, asId, 1, []); if (r4.err) errs.push(r4.err);               // (8,7)->(9,7) direct
+      G.tickN(120);
+      const n = G.node(asId);
+      return { errs, inBuf: n.inBuf, outBuf: n.outBuf, working: n.working, util: n.util };
+    });
+    check('assembly station: the whole chain (extractor->splitter->2 smelters->2 fabricators->merger->assembly station) connects with no errors', out.errs.length === 0, out);
+    check('assembly station: braced_plate is actually being produced from a real converging chain of Ferrite Plate + Bolts', (out.outBuf.braced_plate || 0) > 0, out);
+    check('assembly station: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- recipe tree: Manufactory, the capstone 4-input
+  // recipe (Reinforced Frame needs Braced Frame + Steel Tube + Encased Girder + Bolts all at once) — seeded
+  // directly via deliverToTerminal (which, despite its name, just adds to any node's inBuf by good) rather than
+  // building all 3 upstream sub-chains, since the sim's generic r.in.forEach() handling of an N-input recipe was
+  // already proven correct by the Alloy Foundry/Assembly Station cases above; this test's job is specifically to
+  // prove a FOURTH simultaneous input is handled too, not to re-prove the underlying math.
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const manuId = G.place('manufactory', 5, 5, 'reinforced_frame');
+      // Reinforced Frame's recipe needs braced_frame x5, steel_tube x20, encased_girder x5, bolts x120 per
+      // cycle — a lopsided 1:4:1:24 ratio. Seeding all four with the SAME flat amount (as an earlier draft of
+      // this test did) starves bolts (the 120-per-cycle input) long before the other three, stalling the
+      // machine well before the test finishes and making "working" false for a reason unrelated to what this
+      // test checks. Seeding proportional to each input's own per-cycle need, generously (×2000, comfortably
+      // more than the ~200 cycles' worth of time 60 sim-seconds at this recipe's 30s cycle actually covers),
+      // keeps all four supplied through the whole tickN() window instead of exhausting right at the end.
+      const seed = { braced_frame: 10000, steel_tube: 40000, encased_girder: 10000, bolts: 240000 };
+      for (const g in seed) G.deliverToTerminal(manuId, g, seed[g]);
+      G.tickN(60);
+      const n = G.node(manuId);
+      return { inBuf: n.inBuf, outBuf: n.outBuf, working: n.working,
+        allFourDrewDown: Object.keys(seed).every(g => n.inBuf[g] < seed[g]) };
+    });
+    check('manufactory: reinforced_frame is produced', (out.outBuf.reinforced_frame || 0) > 0 && out.working, out);
+    check('manufactory: all FOUR inputs were drawn down together, not just the first one or two (the recipe.in.forEach is genuinely N-ary)', out.allFourDrewDown, out);
+    check('manufactory: zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- recipe tree: recipe-choice UI scales to a
+  // building with many recipes (fabricator went from 6 recipes to 10; assembly station is brand new with 10)
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(async () => {
+      const G = window.__game;
+      const dep = G.deposits().find(d => d.good === 'ferrite_ore');
+      // real UI click: select the Fabricator tool, tap an empty cell, count the recipe-picker's options
+      document.querySelector('.tool[data-t="fabricator"]').click();
+      const p = G.cellPx(dep.x + 5, dep.y);
+      const el = document.elementFromPoint(p.x, p.y) || document.getElementById('c');
+      el.dispatchEvent(new PointerEvent('pointerdown', { clientX: p.x, clientY: p.y, bubbles: true }));
+      await new Promise(r => setTimeout(r, 30));
+      const modalShown = document.getElementById('recipePick').classList.contains('show');
+      const optionCount = document.querySelectorAll('#rpOpts .opt').length;
+      const expected = Object.values(G.RECIPES).filter(r => r.b === 'fabricator').length;
+      return { modalShown, optionCount, expected };
+    });
+    check('recipe picker (real UI): choosing Fabricator over an empty cell opens the recipe-choice modal', out.modalShown, out);
+    check('recipe picker (real UI): lists every fabricator recipe, not just the original 6 (now 10, all wired in)', out.optionCount === out.expected && out.expected === 10, out);
+    check('recipe picker (real UI): zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
+  // ---------------------------------------------------------------- recipe tree: changeRecipe() generalizes to
+  // the new PROC building types too, not just smelter/fabricator
+  {
+    const { page, pageErrors } = await freshPage(browser);
+    const out = await page.evaluate(() => {
+      const G = window.__game;
+      const asId = G.place('assembly_station', 5, 5, 'braced_plate');
+      const before = G.node(asId).recipeId;
+      const res = G.changeRecipe(asId, 'turn_rotor');
+      const after = G.node(asId);
+      return { before, err: res.err || null, after: after.recipeId, inBufKeys: Object.keys(after.inBuf).sort() };
+    });
+    check('recipe change: works on Assembly Station (a brand-new PROC type), not just Smelter/Fabricator', out.err === null && out.after === 'turn_rotor', out);
+    check('recipe change: buffers reset to the new recipe\'s own inputs (ferrite_rod + bolts for turn_rotor)', JSON.stringify(out.inBufKeys) === JSON.stringify(['bolts', 'ferrite_rod']), out);
+    check('recipe change (new PROC types): zero page errors', pageErrors.length === 0, pageErrors);
+    await page.close();
+  }
+
   } finally {
     // always close the browser, even if a check above throws — an open browser process otherwise
     // keeps Node alive indefinitely instead of exiting, which looks like a hang rather than a failure.
